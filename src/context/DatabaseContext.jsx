@@ -50,7 +50,8 @@ export const DatabaseProvider = ({ children }) => {
   // Login handler
   const login = (email, password) => {
     // Check in database users table
-    const matchedUser = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const usersList = db?.users || initialData?.users || [];
+    const matchedUser = usersList.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (matchedUser) {
       if (matchedUser.status === 'Suspended') {
         return { success: false, message: "This account has been suspended." };

@@ -29,10 +29,16 @@ export const AuthContainer = () => {
     setLoading(true);
 
     setTimeout(() => {
-      const res = login(email, password);
-      setLoading(false);
-      if (!res.success) {
-        setError(res.message);
+      try {
+        const res = login(email, password);
+        setLoading(false);
+        if (!res.success) {
+          setError(res.message);
+        }
+      } catch (err) {
+        console.error("Login submission failed:", err);
+        setLoading(false);
+        setError("System login failure: " + err.message);
       }
     }, 800);
   };
@@ -161,21 +167,20 @@ export const AuthContainer = () => {
                     </div>
                   )}
 
-                  <Button
+                  <button
                     type="submit"
-                    variant="primary"
-                    className="w-full py-3 mt-2 flex items-center justify-center gap-2"
                     disabled={loading}
+                    className="w-full py-3 mt-2 flex items-center justify-center gap-2 border border-luxury-gold/35 bg-zinc-950/60 hover:bg-luxury-gold/5 text-luxury-gold hover:text-white rounded-md font-semibold transition-all duration-300 cursor-pointer disabled:opacity-50"
                   >
                     {loading ? (
-                      <RefreshCw className="w-4 h-4 animate-spin text-black" />
+                      <RefreshCw className="w-4 h-4 animate-spin text-luxury-gold" />
                     ) : (
                       <>
-                        <ShieldCheck className="w-4 h-4 text-black" />
-                        <span>Authenticate Access</span>
+                        <ShieldCheck className="w-4 h-4 text-luxury-gold" />
+                        <span className="text-luxury-gold">Authenticate Access</span>
                       </>
                     )}
-                  </Button>
+                  </button>
                 </form>
               </motion.div>
             )}

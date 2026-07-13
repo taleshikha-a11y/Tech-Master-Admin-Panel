@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -7,500 +7,403 @@ import { Select } from '../../components/ui/Select';
 import { Switch } from '../../components/ui/Switch';
 import { Badge } from '../../components/ui/Badge';
 import { ConfirmDialog, Dialog } from '../../components/ui/Dialog';
-import { TiltCard } from '../../components/ui/TiltCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  FileText, Search, Plus, Edit2, Trash2, X, Eye, 
-  ExternalLink, Calendar, User, Clock, Tag
+  FileText, CheckCircle, Trash2, Edit2, X, Upload, 
+  Settings, Layout, BarChart, Users, Tag, Bold, Italic, Link, Code
 } from 'lucide-react';
 
-export const Blogs = ({ activeSubFeature }) => {
-  const { db, addItem, updateItem, deleteItem } = useDatabase();
-  const list = db.blogs || [];
+/* =========================================================
+   FILE UPLOAD SIMULATOR (BLOB)
+========================================================= */
+const FileUpload = ({ label, value, onChange, accept="image/*" }) => {
+  const fileRef = useRef(null);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      onChange(url);
+    }
+  };
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{label}</label>
+      <div className="flex items-center gap-3">
+        {value && (
+          <div className="w-12 h-10 rounded border border-zinc-700 bg-black overflow-hidden flex-shrink-0 flex items-center justify-center">
+             <img src={value} className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'} />
+          </div>
+        )}
+        <input type="file" ref={fileRef} className="hidden" accept={accept} onChange={handleFileChange} />
+        <button type="button" onClick={() => fileRef.current?.click()} className="flex-1 border border-dashed border-zinc-700 hover:border-luxury-gold hover:text-luxury-gold bg-zinc-950/50 rounded-lg px-4 py-2 text-sm flex items-center justify-center transition-colors text-zinc-400 min-h-[42px] truncate">
+          <Upload className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span className="truncate">{value ? 'Change Media' : 'Upload File'}</span>
+        </button>
+      </div>
+    </div>
+  );
+};
 
-  // Search & Filter
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+export const Blogs = () => {
+  const { db, updateSection } = useDatabase();
+  
+  // Data Collections
+  const blogHero = db?.blogHero || {};
+  const featuredStrategy = db?.featuredStrategy || {};
+  const strategyStats = db?.strategyStats || [];
+  const strategyPillars = db?.strategyPillars || [];
+  const strategyPresets = db?.strategyPresets || [];
+  const quickBlueprint = db?.quickBlueprint || {};
+  const blogCategories = db?.blogCategories || [];
+  const latestInsights = db?.latestInsights || {};
+  const blogs = db?.blogs || [];
+  const blogSettings = db?.blogPageSettings || {};
+  const blogSEO = db?.blogSEO || {};
 
-  // Modals & Panels State
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
+  const [toastMsg, setToastMsg] = useState('');
+  const showToast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 3000); };
+
+  // Nav
+  const NAV_TABS = ['Articles', 'Hero Setup', 'Strategy Builder', 'Categories', 'Global & SEO'];
+  const [activeNavTab, setActiveNavTab] = useState('Articles'); 
+  
+  // States
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingType, setEditingType] = useState(null); 
+  const [editingId, setEditingId] = useState(null);
+  const [draftItem, setDraftItem] = useState({});
   const [deleteId, setDeleteId] = useState(null);
-  const [showcaseItem, setShowcaseItem] = useState(null); // Active 3D blog showcase item
+  const [deletingType, setDeletingType] = useState(null);
 
-  // Form State
-  const [formData, setFormData] = useState({});
-  const [formErrors, setFormErrors] = useState({});
+  // Settings Drafts
+  const [heroDraft, setHeroDraft] = useState(blogHero);
+  const [featDraft, setFeatDraft] = useState(featuredStrategy);
+  const [quickDraft, setQuickDraft] = useState(quickBlueprint);
+  const [latestDraft, setLatestDraft] = useState(latestInsights);
+  const [settingsDraft, setSettingsDraft] = useState(blogSettings);
+  const [seoDraft, setSeoDraft] = useState(blogSEO);
 
-  // 3D image tilt states in modal
-  const [imgTilt, setImgTilt] = useState({ x: 0, y: 0 });
-  const [imgHovered, setImgHovered] = useState(false);
-
-  const handleImageMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const normalizedX = (x / rect.width) - 0.5;
-    const normalizedY = (y / rect.height) - 0.5;
-    
-    // Tilt limit
-    const tiltLimit = 12;
-    setImgTilt({
-      x: -normalizedY * tiltLimit,
-      y: normalizedX * tiltLimit
-    });
+  const handleStartAdd = (type) => {
+    setEditingType(type);
+    setEditingId(null);
+    let init = { active: true, order: 1 };
+    if (type === 'blogs') init = { active: true, status: 'published', author: 'TechMaster', readTime: '5 min read', publishDate: new Date().toISOString().split('T')[0] };
+    setDraftItem(init);
+    setIsEditorOpen(true);
   };
 
-  const handleImageMouseLeave = () => {
-    setImgHovered(false);
-    setImgTilt({ x: 0, y: 0 });
+  const handleStartEdit = (type, item) => {
+    setEditingType(type);
+    setEditingId(item.id);
+    setDraftItem(item);
+    setIsEditorOpen(true);
   };
 
-  // Filter list
-  const filteredList = list.filter(item => {
-    const matchesSearch = 
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.author || '').toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesCategory = 
-      categoryFilter === 'all' || 
-      item.category === categoryFilter;
-
-    // Filter by Sub-tab (Features list at top)
-    let matchesSubTab = true;
-    if (activeSubFeature === 'Drafts') {
-      matchesSubTab = item.status === 'draft';
-    } else if (activeSubFeature === 'Published') {
-      matchesSubTab = item.status === 'published';
-    }
-
-    return matchesSearch && matchesCategory && matchesSubTab;
-  });
-
-  // Open Form
-  const openForm = (e, item = null) => {
-    e.stopPropagation(); // Avoid triggering details modal open
-    setFormErrors({});
-    if (item) {
-      setEditingItem(item);
-      setFormData(item);
-    } else {
-      setEditingItem(null);
-      setFormData({
-        title: '',
-        category: 'Branding',
-        author: 'Akanksha Dua',
-        readTime: '5 min read',
-        publishDate: new Date().toISOString().split('T')[0],
-        coverImage: '',
-        content: '',
-        status: 'published',
-        isActive: true
-      });
-    }
-    setIsFormOpen(true);
-  };
-
-  const handleInputChange = (name, value) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleFormSubmit = (e) => {
+  const handleSaveItem = (e) => {
     e.preventDefault();
-    if (!formData.title?.trim()) {
-      setFormErrors({
-        title: 'Article title is required.'
-      });
-      return;
-    }
-
-    const payload = {
-      ...formData,
-      coverImage: formData.coverImage?.trim() || "https://images.unsplash.com/photo-1542435503-956c469947f6?auto=format&fit=crop&q=80&w=800"
-    };
-
-    if (editingItem) {
-      updateItem('blogs', editingItem.id, payload);
-      if (showcaseItem?.id === editingItem.id) {
-        setShowcaseItem(prev => ({ ...prev, ...payload }));
-      }
+    const collectionKey = editingType;
+    const currentList = db[collectionKey] || [];
+    let nextList = [];
+    if (editingId) {
+      nextList = currentList.map(item => item.id === editingId ? { ...draftItem, id: item.id } : item);
     } else {
-      addItem('blogs', payload);
+      nextList = [...currentList, { ...draftItem, id: `${editingType}-${Date.now()}` }];
     }
-    setIsFormOpen(false);
+    updateSection(collectionKey, null, nextList);
+    setIsEditorOpen(false);
+    showToast(`✅ Saved ${editingType}.`);
   };
 
   const handleDeleteConfirm = () => {
     if (deleteId) {
-      deleteItem('blogs', deleteId);
-      if (showcaseItem?.id === deleteId) {
-        setShowcaseItem(null);
-      }
+      const collectionKey = deletingType;
+      const currentList = db[collectionKey] || [];
+      updateSection(collectionKey, null, currentList.filter(item => item.id !== deleteId));
       setDeleteId(null);
+      setDeletingType(null);
+      showToast("✅ Record deleted.");
     }
   };
 
+  // Editor Toolbar Logic
+  const handleFormat = (tagOpen, tagClose) => {
+     const textarea = document.getElementById('blog-content-editor');
+     if(!textarea) return;
+     const start = textarea.selectionStart;
+     const end = textarea.selectionEnd;
+     const text = draftItem.content || '';
+     const newText = text.substring(0, start) + tagOpen + text.substring(start, end) + tagClose + text.substring(end);
+     setDraftItem({...draftItem, content: newText});
+  };
+
+  const renderTable = (list, type) => (
+    <div className="bg-zinc-950/40 border border-zinc-800/50 rounded-2xl overflow-x-auto w-full">
+      <table className="w-full text-left text-sm text-zinc-400 whitespace-nowrap">
+        <thead className="bg-zinc-900/50 border-b border-zinc-850 text-[10px] uppercase tracking-wider font-semibold">
+          <tr>
+            <th className="px-5 py-4 w-10">#</th>
+            <th className="px-5 py-4">Title / Label</th>
+            {type === 'blogs' && <th className="px-5 py-4">Category</th>}
+            <th className="px-5 py-4">Status</th>
+            <th className="px-5 py-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-850/50">
+          {list.length === 0 && <tr><td colSpan="5" className="px-5 py-8 text-center text-zinc-500 italic">No items found.</td></tr>}
+          {list.map((item, idx) => (
+            <tr key={item.id} className="hover:bg-zinc-900/20 transition-colors">
+              <td className="px-5 py-4 text-zinc-500">{item.order || idx + 1}</td>
+              <td className="px-5 py-4 font-medium text-zinc-200">
+                {item.title || item.name || item.number || item.presetName || '-'}
+                {(type === 'blogs') && <span className="block text-[10px] font-normal text-zinc-500 mt-0.5">{item.publishDate}</span>}
+              </td>
+              {type === 'blogs' && <td className="px-5 py-4"><Badge variant="outline">{item.category}</Badge></td>}
+              <td className="px-5 py-4">
+                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-medium border ${item.active !== false && item.status !== 'draft' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>
+                  {item.status === 'draft' ? 'Draft' : (item.active !== false ? 'Active' : 'Hidden')}
+                </span>
+              </td>
+              <td className="px-5 py-4 text-right">
+                <div className="flex items-center justify-end gap-1.5">
+                  <button onClick={() => handleStartEdit(type, item)} className="p-1.5 hover:bg-zinc-900 rounded text-zinc-400 hover:text-luxury-gold"><Edit2 className="w-4 h-4" /></button>
+                  <button onClick={() => { setDeletingType(type); setDeleteId(item.id); }} className="p-1.5 hover:bg-zinc-900 rounded text-rose-500"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col gap-6 text-left">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4 border-b border-zinc-800/80 pb-5">
-        <div>
-          <h1 className="font-serif text-2xl font-medium tracking-wide text-zinc-100 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-luxury-gold" />
-            Blog Insight Manager
-          </h1>
-          <p className="text-xs text-zinc-500 mt-1">
-            Displaying {filteredList.length} articles. Hover to tilt. Click to read, edit, or publish luxury press articles.
-          </p>
-        </div>
-        <Button variant="primary" size="sm" onClick={(e) => openForm(e, null)} className="gap-2">
-          <Plus className="w-4 h-4 text-black" />
-          <span className="text-black">Add Blog</span>
-        </Button>
-      </div>
-
-      {/* Controls */}
-      <div className="glass-panel rounded-lg p-4 border border-zinc-800/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="relative flex-grow max-w-md">
-          <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-3.5" />
-          <input
-            type="text"
-            placeholder="Search blog titles, categories, or keywords..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-950/40 border border-zinc-800/80 rounded-md pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none"
-          />
-        </div>
-
-        <div className="w-48">
-          <Select
-            options={[
-              { value: 'all', label: 'All Categories' },
-              { value: 'Lifestyle', label: 'Lifestyle' },
-              { value: 'Marketing', label: 'Marketing' },
-              { value: 'Branding', label: 'Branding' },
-              { value: 'Creator Journey', label: 'Creator Journey' },
-              { value: 'Tips', label: 'Tips' },
-              { value: 'Latest News', label: 'Latest News' }
-            ]}
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Blog Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredList.length === 0 ? (
-          <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-12 glass-panel border border-zinc-800/70 rounded-lg p-6 bg-zinc-950/10 flex flex-col items-center justify-center gap-3">
-            <p className="text-sm text-zinc-500 italic">No blog posts found matching this category.</p>
-            <Button variant="primary" size="sm" onClick={(e) => openForm(e, null)} className="gap-1.5">
-              <Plus className="w-4 h-4 text-black" />
-              <span className="text-black font-semibold">Add Blog</span>
-            </Button>
-          </div>
-        ) : (
-          filteredList.map((item) => (
-            <motion.div
-              key={item.id}
-              onClick={() => setShowcaseItem(item)}
-              className="cursor-pointer"
-            >
-              <TiltCard 
-                className="h-full border border-zinc-800/80 p-0 overflow-hidden flex flex-col justify-between group"
-                maxTilt={8}
-              >
-                {/* Widescreen cover thumbnail */}
-                <div className="h-48 overflow-hidden relative border-b border-zinc-800 bg-zinc-950">
-                  <img 
-                    src={item.coverImage || "https://images.unsplash.com/photo-1542435503-956c469947f6?auto=format&fit=crop&q=80&w=600"} 
-                    alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 absolute inset-0" 
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex items-end p-4 z-10">
-                    <Badge variant="gold">
-                      {item.category}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Details info */}
-                <div className="p-5 flex-grow flex flex-col justify-between">
-                  <div className="flex flex-col gap-2">
-                    <span className="text-[10px] text-luxury-gold font-mono tracking-wider uppercase block">{item.publishDate}</span>
-                    <h3 className="font-serif text-sm font-bold text-zinc-200 tracking-wide leading-snug truncate-2-lines">{item.title}</h3>
-                    <p className="text-xs text-zinc-400 mt-2 truncate-2-lines">
-                      {item.content || "Exclusive thoughts and insights discussing high-end branding layouts."}
-                    </p>
-                  </div>
-
-                  <div className="flex justify-between items-center mt-5 border-t border-zinc-900/60 pt-3 flex-wrap gap-2">
-                    <span className="text-[10px] text-zinc-500 font-semibold font-mono uppercase">
-                      {item.readTime}
-                    </span>
-
-                    <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      <button 
-                        onClick={(e) => openForm(e, item)}
-                        className="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-luxury-gold transition-colors cursor-pointer"
-                        title="Edit Blog"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setDeleteId(item.id); }}
-                        className="p-1.5 rounded hover:bg-zinc-800 text-zinc-500 hover:text-rose-400 transition-colors cursor-pointer"
-                        title="Delete Blog"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </TiltCard>
-            </motion.div>
-          ))
-        )}
-      </div>
-
-      {/* 3D IMMERSIVE SHOWCASE DIALOG */}
+    <div className="flex flex-col gap-6 text-left min-h-screen pb-20 relative">
       <AnimatePresence>
-        {showcaseItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowcaseItem(null)}
-              className="fixed inset-0 bg-black/90 backdrop-blur-xl z-40"
-            />
-
-            {/* Showcase details container */}
-            <motion.div
-              initial={{ opacity: 0, y: 50, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 50, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="relative w-full max-w-4xl glass-panel border border-zinc-800 rounded-lg overflow-hidden z-50 flex flex-col md:flex-row text-left shadow-gold-glow-lg"
-              style={{ perspective: 1200 }}
-            >
-              {/* Left animated product image panel with 3D slant */}
-              <motion.div 
-                initial={{ opacity: 0, rotateY: 15, scale: 0.95 }}
-                animate={{ opacity: 1, rotateY: 0, scale: 1 }}
-                exit={{ opacity: 0, rotateY: 15, scale: 0.95 }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
-                onMouseMove={handleImageMouseMove}
-                onMouseEnter={() => setImgHovered(true)}
-                onMouseLeave={handleImageMouseLeave}
-                className="w-full md:w-1/2 h-[300px] md:h-auto overflow-hidden relative group border-b md:border-b-0 md:border-r border-zinc-800/80 cursor-crosshair select-none"
-                style={{ perspective: 1000, transformStyle: 'preserve-3d' }}
-              >
-                <motion.img 
-                  src={showcaseItem.coverImage || "https://images.unsplash.com/photo-1542435503-956c469947f6?auto=format&fit=crop&q=80&w=800"} 
-                  alt="" 
-                  animate={{
-                    rotateX: imgTilt.x,
-                    rotateY: imgTilt.y,
-                    scale: imgHovered ? 1.05 : 1.01
-                  }}
-                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                  style={{ transformStyle: 'preserve-3d' }}
-                  className="w-full h-full object-cover" 
-                />
-
-                <div 
-                  className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10 flex flex-col justify-between p-6 pointer-events-none z-10"
-                  style={{ transformStyle: 'preserve-3d' }}
-                >
-                  <div 
-                    className="w-10 h-10 rounded-full bg-black/60 border border-luxury-gold/30 backdrop-blur flex items-center justify-center font-serif font-black text-luxury-gold"
-                    style={{ transform: 'translateZ(30px)' }}
-                  >
-                    AD
-                  </div>
-
-                  {/* 3D Parallax floating card */}
-                  <div 
-                    className="bg-black/65 border border-luxury-gold/20 backdrop-blur-md p-4 rounded-md shadow-gold-glow flex flex-col gap-1 w-full max-w-[280px]"
-                    style={{ transform: 'translateZ(60px)' }}
-                  >
-                    <span className="text-[9px] text-luxury-gold font-mono tracking-widest uppercase block">INSIGHT ARTICLE</span>
-                    <h3 className="font-serif text-base font-bold text-white uppercase tracking-wider truncate">{showcaseItem.category}</h3>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Right content details pane */}
-              <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-between bg-zinc-950/60 overflow-y-auto">
-                <button
-                  onClick={() => setShowcaseItem(null)}
-                  className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-900/60 text-zinc-500 hover:text-white transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                <div className="flex flex-col gap-6">
-                  {/* Category & Date header */}
-                  <div className="flex items-center justify-between border-b border-zinc-900 pb-3 flex-wrap gap-2 mt-4 md:mt-0">
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-500 font-semibold font-mono uppercase">
-                      <Calendar className="w-4 h-4 text-luxury-gold" />
-                      <span>{showcaseItem.publishDate}</span>
-                    </div>
-                    <Badge variant="gold">{showcaseItem.category}</Badge>
-                  </div>
-
-                  {/* Title & Author */}
-                  <div>
-                    <h2 className="font-serif text-lg font-bold text-zinc-100">{showcaseItem.title}</h2>
-                    <div className="flex gap-4 text-[10px] text-zinc-500 uppercase font-semibold font-mono mt-2">
-                      <span className="flex items-center gap-1"><User className="w-3.5 h-3.5 text-luxury-gold" /> By {showcaseItem.author}</span>
-                      <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-zinc-500" /> {showcaseItem.readTime}</span>
-                    </div>
-                  </div>
-
-                  {/* Blog content */}
-                  <div className="flex flex-col gap-1.5">
-                    <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Article Excerpt</h4>
-                    <p className="text-xs text-zinc-300 leading-relaxed max-h-[160px] overflow-y-auto p-3.5 border border-zinc-900 bg-zinc-950/40 rounded italic">
-                      "{showcaseItem.content || "Branding methodologies co-designed for the modern luxury web framework spaces."}"
-                    </p>
-                  </div>
-                </div>
-
-                {/* Footer links */}
-                <div className="flex items-center gap-3 mt-8 border-t border-zinc-900/80 pt-4 flex-wrap w-full">
-                  <Button 
-                    variant="primary" 
-                    className="flex-grow py-2.5 text-xs text-black font-semibold gap-1.5" 
-                    onClick={(e) => { 
-                      setShowcaseItem(null); 
-                      openForm(e, showcaseItem); 
-                    }}
-                  >
-                    <Edit2 className="w-3.5 h-3.5 text-black" />
-                    <span className="text-black font-semibold">Edit Article</span>
-                  </Button>
-                  <Button 
-                    variant="danger" 
-                    className="py-2.5 text-xs gap-1.5" 
-                    onClick={() => { 
-                      setShowcaseItem(null); 
-                      setDeleteId(showcaseItem.id); 
-                    }}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete</span>
-                  </Button>
-                  <Button variant="secondary" className="py-2.5 text-xs" onClick={() => setShowcaseItem(null)}>
-                    Close
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+        {toastMsg && (
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-24 left-1/2 -translate-x-1/2 z-[9999] bg-zinc-900 border border-luxury-gold/50 text-luxury-gold px-6 py-3 rounded-full shadow-gold-glow flex items-center gap-3">
+            <CheckCircle className="w-5 h-5" />
+            <span className="font-medium text-sm">{toastMsg}</span>
+          </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Add / Edit Form Dialog */}
-      <Dialog
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        title={editingItem ? "Edit Blog Article" : "Compose Blog Article"}
-        size="md"
-      >
-        <form onSubmit={handleFormSubmit} className="flex flex-col gap-4 text-left">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input 
-              label="Article Title"
-              value={formData.title || ''}
-              onChange={(e) => handleInputChange('title', e.target.value)}
-              error={formErrors.title}
-              placeholder="e.g. The Art of Golden Ratios"
-              required
-            />
-            <Input 
-              label="Author Name"
-              value={formData.author || 'Akanksha Dua'}
-              onChange={(e) => handleInputChange('author', e.target.value)}
-              placeholder="e.g. Akanksha Dua"
-            />
+      {!isEditorOpen && (
+        <>
+          <div className="border-b border-zinc-800/80 pb-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <div>
+              <h1 className="font-serif text-3xl font-medium tracking-wide text-zinc-100 flex items-center gap-3">
+                <FileText className="w-7 h-7 text-luxury-gold" /> Blog CMS Engine
+              </h1>
+              <p className="text-sm text-zinc-500 mt-2">Manage articles, landing page strategy logic, categories, and SEO.</p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Select 
-              label="Article Category"
-              options={[
-                { value: 'Lifestyle', label: 'Lifestyle' },
-                { value: 'Marketing', label: 'Marketing' },
-                { value: 'Branding', label: 'Branding' },
-                { value: 'Creator Journey', label: 'Creator Journey' },
-                { value: 'Tips', label: 'Tips' },
-                { value: 'Latest News', label: 'Latest News' }
-              ]}
-              value={formData.category || 'Branding'}
-              onChange={(e) => handleInputChange('category', e.target.value)}
-            />
-            <Select 
-              label="Publication Status"
-              options={[
-                { value: 'published', label: 'Published' },
-                { value: 'draft', label: 'Draft' }
-              ]}
-              value={formData.status || 'published'}
-              onChange={(e) => handleInputChange('status', e.target.value)}
-            />
+          <div className="flex flex-wrap gap-2 mb-2 pb-4 border-b border-zinc-800/50">
+            {NAV_TABS.map(tab => (
+              <button key={tab} onClick={() => setActiveNavTab(tab)} className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-[1.5px] border transition-all ${activeNavTab === tab ? "bg-luxury-gold border-luxury-gold text-black shadow-gold-glow-sm" : "bg-zinc-950 border-zinc-800/50 text-zinc-400 hover:border-zinc-700 hover:text-white"}`}>
+                {tab}
+              </button>
+            ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input 
-              label="Publish Date"
-              type="date"
-              value={formData.publishDate || ''}
-              onChange={(e) => handleInputChange('publishDate', e.target.value)}
-            />
-            <Input 
-              label="Est. Read Time (e.g. 5 min read)"
-              value={formData.readTime || ''}
-              onChange={(e) => handleInputChange('readTime', e.target.value)}
-              placeholder="e.g. 5 min read"
-            />
-          </div>
+          {activeNavTab === 'Articles' && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
+               <div className="flex justify-between items-center"><h3 className="font-serif text-xl">Articles Hub</h3>
+                 <Button onClick={() => handleStartAdd('blogs')} className="bg-luxury-gold text-black">Write Article</Button>
+               </div>
+               {renderTable(blogs, 'blogs')}
+             </motion.div>
+          )}
 
-          <Input 
-            label="Featured Cover Image URL"
-            value={formData.coverImage || ''}
-            onChange={(e) => handleInputChange('coverImage', e.target.value)}
-            error={formErrors.coverImage}
-            placeholder="https://unsplash.com/image..."
-          />
+          {activeNavTab === 'Hero Setup' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-6">
+              <div className="bg-zinc-950/40 border border-zinc-800 rounded-2xl p-6">
+                <h3 className="text-xl font-serif text-white mb-6">Hero Texts</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input label="Small Badge" value={heroDraft.badge || ''} onChange={e => setHeroDraft(p => ({...p, badge: e.target.value}))} />
+                  <Input label="Main Title Line 1" value={heroDraft.titleLine1 || ''} onChange={e => setHeroDraft(p => ({...p, titleLine1: e.target.value}))} />
+                  <Input label="Main Title Line 2 (Highlight)" value={heroDraft.titleLine2 || ''} onChange={e => setHeroDraft(p => ({...p, titleLine2: e.target.value}))} />
+                  <div className="flex items-center gap-4 mt-4">
+                    <Switch label="Show Section" checked={heroDraft.active !== false} onChange={v => setHeroDraft(p => ({...p, active: v}))} />
+                    <Switch label="Glow Effect" checked={heroDraft.glowEnabled !== false} onChange={v => setHeroDraft(p => ({...p, glowEnabled: v}))} />
+                  </div>
+                </div>
+                <div className="flex justify-end mt-6"><Button onClick={() => { updateSection('blogHero', null, heroDraft); showToast('✅ Hero Saved'); }} className="bg-luxury-gold text-black">Save Settings</Button></div>
+              </div>
+            </motion.div>
+          )}
 
-          <Input 
-            label="Article Narrative Content"
-            textarea
-            rows={5}
-            value={formData.content || ''}
-            onChange={(e) => handleInputChange('content', e.target.value)}
-            placeholder="Write blog paragraphs or article summaries here..."
-          />
+          {activeNavTab === 'Strategy Builder' && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-8">
+                {/* Intro Texts */}
+                <div className="bg-zinc-950/40 border border-zinc-800 rounded-2xl p-6">
+                  <div className="flex justify-between mb-6"><h3 className="text-xl font-serif">Featured Strategy Intro</h3><Switch checked={featDraft.active !== false} onChange={v => { setFeatDraft(p => ({...p, active: v})); updateSection('featuredStrategy', null, {...featDraft, active: v}); }} /></div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <Input label="Badge" value={featDraft.badge || ''} onChange={e => setFeatDraft(p => ({...p, badge: e.target.value}))} />
+                    <Input label="Title Start" value={featDraft.titleLine1 || ''} onChange={e => setFeatDraft(p => ({...p, titleLine1: e.target.value}))} />
+                    <Input label="Title Highlight" value={featDraft.titleLine2 || ''} onChange={e => setFeatDraft(p => ({...p, titleLine2: e.target.value}))} />
+                    <Input label="Title End" value={featDraft.titleLine3 || ''} onChange={e => setFeatDraft(p => ({...p, titleLine3: e.target.value}))} />
+                    <div className="md:col-span-2"><Input label="Description" value={featDraft.description || ''} onChange={e => setFeatDraft(p => ({...p, description: e.target.value}))} /></div>
+                  </div>
+                  <Button onClick={() => { updateSection('featuredStrategy', null, featDraft); showToast('✅ Strategy Intro Saved'); }}>Save Intro</Button>
+                </div>
 
-          <div className="flex justify-end gap-3 mt-4 border-t border-zinc-900 pt-4">
-            <Button variant="secondary" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="primary">
-              {editingItem ? "Save Changes" : "Publish Article"}
-            </Button>
-          </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                   {/* STATS */}
+                   <div>
+                     <div className="flex justify-between items-center mb-4"><h3 className="font-serif text-lg text-luxury-gold">Strategy Stats</h3><Button size="sm" onClick={() => handleStartAdd('strategyStats')}>Add Stat</Button></div>
+                     {renderTable(strategyStats, 'strategyStats')}
+                   </div>
+                   {/* PILLARS */}
+                   <div>
+                     <div className="flex justify-between items-center mb-4"><h3 className="font-serif text-lg text-luxury-gold">Core Pillars</h3><Button size="sm" onClick={() => handleStartAdd('strategyPillars')}>Add Pillar</Button></div>
+                     {renderTable(strategyPillars, 'strategyPillars')}
+                   </div>
+                </div>
+
+                {/* PRESETS */}
+                <div>
+                   <div className="flex justify-between items-center mb-4"><h3 className="font-serif text-lg text-luxury-gold">Planner Presets (Estimator)</h3><Button size="sm" onClick={() => handleStartAdd('strategyPresets')}>Add Preset</Button></div>
+                   {renderTable(strategyPresets, 'strategyPresets')}
+                </div>
+             </motion.div>
+          )}
+
+          {activeNavTab === 'Categories' && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
+               <div className="flex justify-between items-center"><h3 className="font-serif text-xl">Blog Categories Taxonomy</h3><Button onClick={() => handleStartAdd('blogCategories')} className="bg-luxury-gold text-black">Add Category</Button></div>
+               {renderTable(blogCategories, 'blogCategories')}
+             </motion.div>
+          )}
+
+          {activeNavTab === 'Global & SEO' && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Latest Insights Text */}
+                  <div className="bg-zinc-950/40 border border-zinc-800 rounded-2xl p-6">
+                    <h3 className="font-serif text-xl mb-4">Latest Insights Header</h3>
+                    <div className="flex flex-col gap-4">
+                      <Input label="Section Title" value={latestDraft.title || ''} onChange={e => setLatestDraft(p => ({...p, title: e.target.value}))} />
+                      <Input label="Subtitle" value={latestDraft.subtitle || ''} onChange={e => setLatestDraft(p => ({...p, subtitle: e.target.value}))} />
+                      <Switch label="Show Latest Insights Block" checked={latestDraft.active !== false} onChange={v => setLatestDraft(p => ({...p, active: v}))} />
+                      <Button onClick={() => { updateSection('latestInsights', null, latestDraft); showToast('Saved'); }}>Save Section</Button>
+                    </div>
+                  </div>
+
+                  {/* Settings */}
+                  <div className="bg-zinc-950/40 border border-zinc-800 rounded-2xl p-6">
+                    <h3 className="font-serif text-xl mb-4">Page Level Controls</h3>
+                    <div className="flex flex-col gap-3">
+                      {['showHero', 'showStrategy', 'showLatest', 'showFilters', 'hoverAnimations'].map(key => (
+                         <div key={key} className="flex justify-between p-2 border-b border-zinc-800/50">
+                           <span className="text-sm text-zinc-300 font-mono">{key}</span>
+                           <Switch checked={settingsDraft[key] !== false} onChange={v => setSettingsDraft(p => ({...p, [key]: v}))} />
+                         </div>
+                      ))}
+                      <Button onClick={() => { updateSection('blogPageSettings', null, settingsDraft); showToast('Saved'); }} className="mt-2">Save Controls</Button>
+                    </div>
+                  </div>
+
+                  {/* SEO */}
+                  <div className="bg-zinc-950/40 border border-zinc-800 rounded-2xl p-6 md:col-span-2">
+                    <h3 className="font-serif text-xl mb-4">SEO & Metadata</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input label="Meta Title" value={seoDraft.metaTitle || ''} onChange={e => setSeoDraft(p => ({...p, metaTitle: e.target.value}))} />
+                      <Input label="Keywords" value={seoDraft.keywords || ''} onChange={e => setSeoDraft(p => ({...p, keywords: e.target.value}))} />
+                      <div className="md:col-span-2"><Input label="Meta Description" textarea rows={2} value={seoDraft.metaDescription || ''} onChange={e => setSeoDraft(p => ({...p, metaDescription: e.target.value}))} /></div>
+                    </div>
+                    <Button onClick={() => { updateSection('blogSEO', null, seoDraft); showToast('Saved'); }} className="mt-4">Save SEO</Button>
+                  </div>
+                </div>
+             </motion.div>
+          )}
+        </>
+      )}
+
+      {/* ======================= MEGA EDITOR / CMS MODAL ======================= */}
+      <Dialog isOpen={isEditorOpen} onClose={() => setIsEditorOpen(false)} title={editingId ? 'Edit Record' : 'Create Record'} size={editingType === 'blogs' ? 'xl' : 'md'}>
+        <form onSubmit={handleSaveItem} className="flex flex-col gap-4">
+           {/* BLOG ARTICLE FORM */}
+           {editingType === 'blogs' && (
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2 flex flex-col gap-4">
+                   <Input label="Blog Title" value={draftItem.title || ''} onChange={e => setDraftItem(p => ({...p, title: e.target.value}))} required />
+                   <Input label="Short Excerpt" textarea rows={2} value={draftItem.excerpt || ''} onChange={e => setDraftItem(p => ({...p, excerpt: e.target.value}))} required />
+                   
+                   <div className="border border-zinc-800 rounded-xl overflow-hidden bg-black/40">
+                     <div className="bg-zinc-900 border-b border-zinc-800 p-2 flex gap-2">
+                       <button type="button" onClick={() => handleFormat('**', '**')} className="p-1.5 hover:bg-zinc-700 rounded text-zinc-400" title="Bold"><Bold className="w-4 h-4"/></button>
+                       <button type="button" onClick={() => handleFormat('*', '*')} className="p-1.5 hover:bg-zinc-700 rounded text-zinc-400" title="Italic"><Italic className="w-4 h-4"/></button>
+                       <button type="button" onClick={() => handleFormat('[', '](url)')} className="p-1.5 hover:bg-zinc-700 rounded text-zinc-400" title="Link"><Link className="w-4 h-4"/></button>
+                       <button type="button" onClick={() => handleFormat('```\\n', '\\n```')} className="p-1.5 hover:bg-zinc-700 rounded text-zinc-400" title="Code"><Code className="w-4 h-4"/></button>
+                     </div>
+                     <textarea id="blog-content-editor" className="w-full h-[400px] bg-transparent text-sm text-zinc-200 p-4 focus:outline-none custom-scrollbar" placeholder="Start writing using Markdown..." value={draftItem.content || ''} onChange={e => setDraftItem(p => ({...p, content: e.target.value}))} required />
+                   </div>
+                </div>
+
+                <div className="flex flex-col gap-4 border-l border-zinc-800/80 pl-6">
+                   <Select label="Status" options={[{value:'published',label:'Published'},{value:'draft',label:'Draft'}]} value={draftItem.status || 'published'} onChange={e => setDraftItem(p => ({...p, status: e.target.value}))} />
+                   <Select label="Category" options={(blogCategories.length ? blogCategories : [{name:'Marketing'}]).map(c => ({value: c.name, label: c.name}))} value={draftItem.category || ''} onChange={e => setDraftItem(p => ({...p, category: e.target.value}))} />
+                   <Input label="Publish Date" type="date" value={draftItem.publishDate || ''} onChange={e => setDraftItem(p => ({...p, publishDate: e.target.value}))} />
+                   <Input label="Read Time (e.g. 5 min)" value={draftItem.readTime || ''} onChange={e => setDraftItem(p => ({...p, readTime: e.target.value}))} />
+                   <Input label="Author Name" value={draftItem.author || ''} onChange={e => setDraftItem(p => ({...p, author: e.target.value}))} />
+                   <FileUpload label="Cover Image" value={draftItem.coverImage || ''} onChange={url => setDraftItem(p => ({...p, coverImage: url}))} />
+                   <div className="mt-2 space-y-2">
+                     <Switch label="Active/Visible" checked={draftItem.active !== false} onChange={v => setDraftItem(p => ({...p, active: v}))} />
+                     <Switch label="Featured Post" checked={draftItem.featured || false} onChange={v => setDraftItem(p => ({...p, featured: v}))} />
+                   </div>
+                </div>
+             </div>
+           )}
+
+           {/* STRATEGY STATS */}
+           {editingType === 'strategyStats' && (
+             <>
+                <Input label="Number Text (e.g. 10M+)" value={draftItem.number || ''} onChange={e => setDraftItem(p => ({...p, number: e.target.value}))} required />
+                <Input label="Label (e.g. Impressions)" value={draftItem.label || ''} onChange={e => setDraftItem(p => ({...p, label: e.target.value}))} required />
+                <Switch label="Active" checked={draftItem.active !== false} onChange={v => setDraftItem(p => ({...p, active: v}))} />
+             </>
+           )}
+
+           {/* STRATEGY PILLARS */}
+           {editingType === 'strategyPillars' && (
+             <>
+                <Input label="Pillar Title" value={draftItem.title || ''} onChange={e => setDraftItem(p => ({...p, title: e.target.value}))} required />
+                <Input label="Description" textarea rows={2} value={draftItem.description || ''} onChange={e => setDraftItem(p => ({...p, description: e.target.value}))} required />
+                <Switch label="Active" checked={draftItem.active !== false} onChange={v => setDraftItem(p => ({...p, active: v}))} />
+             </>
+           )}
+
+           {/* STRATEGY PRESETS */}
+           {editingType === 'strategyPresets' && (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input label="Preset Name (ID)" value={draftItem.presetName || ''} onChange={e => setDraftItem(p => ({...p, presetName: e.target.value}))} required />
+                <Input label="Badge Text (e.g. Solo Creator)" value={draftItem.badge || ''} onChange={e => setDraftItem(p => ({...p, badge: e.target.value}))} required />
+                <Input label="Monthly Reach" value={draftItem.impressions || ''} onChange={e => setDraftItem(p => ({...p, impressions: e.target.value}))} required />
+                <Input label="Primary Channels" value={draftItem.channel || ''} onChange={e => setDraftItem(p => ({...p, channel: e.target.value}))} required />
+                <div className="md:col-span-2"><Input label="Content Focus" textarea rows={2} value={draftItem.focus || ''} onChange={e => setDraftItem(p => ({...p, focus: e.target.value}))} required /></div>
+                <div className="md:col-span-2"><Input label="ROI" value={draftItem.roi || ''} onChange={e => setDraftItem(p => ({...p, roi: e.target.value}))} required /></div>
+                <Switch label="Active" checked={draftItem.active !== false} onChange={v => setDraftItem(p => ({...p, active: v}))} />
+             </div>
+           )}
+
+           {/* CATEGORIES */}
+           {editingType === 'blogCategories' && (
+             <>
+                <Input label="Category Name" value={draftItem.name || ''} onChange={e => setDraftItem(p => ({...p, name: e.target.value}))} required />
+                <Input label="Slug (e.g. all, lifestyle)" value={draftItem.slug || ''} onChange={e => setDraftItem(p => ({...p, slug: e.target.value}))} required />
+                <Switch label="Active" checked={draftItem.active !== false} onChange={v => setDraftItem(p => ({...p, active: v}))} />
+             </>
+           )}
+
+           <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800">
+             <Button type="button" onClick={() => setIsEditorOpen(false)} variant="secondary">Cancel</Button>
+             <Button type="submit" variant="primary" className="bg-luxury-gold text-black font-bold">Save Record</Button>
+           </div>
         </form>
       </Dialog>
 
-      {/* Delete Confirmation */}
-      <ConfirmDialog
-        isOpen={deleteId !== null}
-        onClose={() => setDeleteId(null)}
-        onConfirm={handleDeleteConfirm}
-      />
+      <ConfirmDialog isOpen={deleteId !== null} onClose={() => setDeleteId(null)} onConfirm={handleDeleteConfirm} />
     </div>
   );
-};
+}

@@ -9,11 +9,117 @@ export const DatabaseProvider = ({ children }) => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Force fallback if blogs is empty or outdated (fewer than 6 posts)
-        if (!parsed.blogs || parsed.blogs.length < 6) {
-          parsed.blogs = initialData.blogs;
+        const merged = {
+          ...initialData,
+          ...parsed,
+          homepage: {
+            ...initialData.homepage,
+            ...(parsed.homepage || {})
+          },
+          about: {
+            ...initialData.about,
+            ...(parsed.about || {})
+          },
+          founderJourney: {
+            ...initialData.founderJourney,
+            ...(parsed.founderJourney || {})
+          },
+          missionVision: {
+            ...initialData.missionVision,
+            ...(parsed.missionVision || {})
+          },
+          whatWeDo: {
+            ...initialData.whatWeDo,
+            ...(parsed.whatWeDo || {})
+          },
+          servicesPage: {
+            ...initialData.servicesPage,
+            ...(parsed.servicesPage || {})
+          },
+          collaborationsPage: {
+            ...initialData.collaborationsPage,
+            ...(parsed.collaborationsPage || {})
+          },
+          campaignsPage: {
+            ...initialData.campaignsPage,
+            ...(parsed.campaignsPage || {})
+          },
+          launchesPage: {
+            ...initialData.launchesPage,
+            ...(parsed.launchesPage || {})
+          },
+          eventsPage: {
+            ...initialData.eventsPage,
+            ...(parsed.eventsPage || {})
+          }
+        };
+        
+        // On-the-fly sanitisation to ensure lists use native arrays and have unique IDs
+        if (merged.servicesPage) {
+          const cleanList = (list) => (list || []).map((item, idx) => ({
+            ...item,
+            id: item.id || `item-${Date.now()}-${idx}`,
+            features: typeof item.features === 'string' ? item.features.split(',').map(s => s.trim()).filter(Boolean) : (Array.isArray(item.features) ? item.features : []),
+            benefits: typeof item.benefits === 'string' ? item.benefits.split(',').map(s => s.trim()).filter(Boolean) : (Array.isArray(item.benefits) ? item.benefits : []),
+            process: typeof item.process === 'string' ? item.process.split(',').map(s => s.trim()).filter(Boolean) : (Array.isArray(item.process) ? item.process : []),
+            gallery: typeof item.gallery === 'string' ? item.gallery.split(',').map(s => s.trim()).filter(Boolean).map(url => ({ url })) : (Array.isArray(item.gallery) ? item.gallery : [])
+          }));
+          
+          merged.servicesPage.mainServices = cleanList(merged.servicesPage.mainServices);
+          merged.servicesPage.advancedServices = cleanList(merged.servicesPage.advancedServices);
         }
-        return parsed;
+        
+        // On-the-fly sanitisation for collaborations schema alignment
+        if (merged.collaborations) {
+          merged.collaborations = merged.collaborations.map((item, idx) => ({
+            ...item,
+            id: item.id || `collab-${idx + 1}`,
+            brandName: item.brandName || "Brand",
+            campaignName: item.campaignName || "Campaign",
+            logoUrl: item.logoUrl || "",
+            bannerImageUrl: item.bannerImageUrl || item.logoUrl || "",
+            collabType: item.collabType || "Campaign",
+            status: item.status || (item.isActive !== false ? "Active" : "Inactive"),
+            featured: item.featured !== undefined ? item.featured : (idx < 3),
+            shortDesc: item.shortDesc || item.campaignDescription || "Description not provided.",
+            reachMetric: item.reachMetric || (item.kpis?.[0]?.value || "1.2M"),
+            impressionsMetric: item.impressionsMetric || (item.kpis?.[1]?.value || "3.4M"),
+            engagementMetric: item.engagementMetric || (item.kpis?.[2]?.value || "4.8%"),
+            conversionsMetric: item.conversionsMetric || (item.metrics?.split(',')?.[1]?.trim() || "+18%"),
+            services: Array.isArray(item.services) ? item.services : ["Brand Strategy", "Cinematic Production", "Interactive Storytelling"],
+            websiteUrl: item.websiteUrl || item.showcaseUrl || "",
+            socialMediaUrl: item.socialMediaUrl || "",
+            collabDate: item.collabDate || "2026-06-01",
+            challenge: item.challenge || "Increase online reach and build brand affinity among HNW developer communities.",
+            solution: item.solution || "Created a series of high-production cinematic developer guides and showcase configurators.",
+            result: item.result || "Reached over 2M views with an engagement rate exceeding industry benchmarks.",
+            testimonialContent: item.testimonialContent || "TechMaster's creative integration was stellar. We saw a substantial uplift in adoption and brand affinity.",
+            clientName: item.clientName || "Sarah Jenkins",
+            designation: item.designation || "Director of Marketing",
+            galleryImages: Array.isArray(item.galleryImages) ? item.galleryImages : (item.productImages || []),
+            videoUrl: item.videoUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ"
+          }));
+        }
+
+        // On-the-fly sanitisation for Contact, FAQ & SEO Arrays (Fixes object corruption)
+        ['contactFormFields', 'contactCategoriesSetup', 'contactSocialLinksSetup', 'faqCategories', 'pageSEO'].forEach(key => {
+          if (merged[key] && !Array.isArray(merged[key])) {
+             merged[key] = Object.values(merged[key]);
+             if (merged[key].length === 0) {
+               merged[key] = initialData[key] || [];
+             }
+          }
+        });
+        
+        if (merged.globalSEO?.socialLinks && !Array.isArray(merged.globalSEO.socialLinks)) {
+           merged.globalSEO.socialLinks = Object.values(merged.globalSEO.socialLinks);
+        }
+
+        // Force fallback if blogs is empty or outdated (fewer than 6 posts)
+        if (!merged.blogs || merged.blogs.length < 6) {
+          merged.blogs = initialData.blogs;
+        }
+        return merged;
       } catch (e) {
         console.error("Failed to parse saved database, resetting.", e);
       }
@@ -42,56 +148,93 @@ export const DatabaseProvider = ({ children }) => {
     localStorage.setItem('zenvora_db', JSON.stringify(db));
   }, [db]);
 
-  // Sync Auth to localStorage
-  useEffect(() => {
-    localStorage.setItem('zenvora_auth', JSON.stringify(auth));
-  }, [auth]);
+  const persistAuth = (nextAuth) => {
+    setAuth(nextAuth);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('zenvora_auth', JSON.stringify(nextAuth));
+    }
+  };
 
   // Login handler
-  const login = (email, password) => {
+  const login = (email = 'admin@techmaster.com', password = 'admin123') => {
+    const safeEmail = (email || 'admin@techmaster.com').toLowerCase();
+    const safePassword = (password || 'admin123').toString();
+    const validPasswords = ['admin123', 'TechMasterDua2026'];
+
+    if (!validPasswords.includes(safePassword)) {
+      return { success: false, message: 'Incorrect access key.' };
+    }
+
     // Check in database users table
     const usersList = db?.users || initialData?.users || [];
-    const matchedUser = usersList.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const matchedUser = usersList.find(u => u.email.toLowerCase() === safeEmail);
     if (matchedUser) {
       if (matchedUser.status === 'Suspended') {
         return { success: false, message: "This account has been suspended." };
       }
-      // Simple mock password bypass or check if it matches 'admin123'
-      if (password === 'admin123' || password === 'AkankshaDua2026') {
-        const authData = { user: matchedUser, isLoggedIn: true };
-        setAuth(authData);
-        // Log last active update
+      const authData = { user: matchedUser, isLoggedIn: true };
+      persistAuth(authData);
+      try {
         updateItem('users', matchedUser.id, { lastActive: new Date().toISOString() });
-        return { success: true };
+      } catch (e) {
+        console.error("Last active log skipped:", e);
       }
-      return { success: false, message: "Invalid password. (Use 'admin123' or 'AkankshaDua2026' for testing)" };
-    }
-    // Check default fallback admin
-    if (email.toLowerCase() === 'admin@akankshadua.com' && (password === 'admin123' || password === 'AkankshaDua2026')) {
-      const fallbackUser = {
-        id: "usr-1",
-        name: "Akanksha Dua",
-        email: "admin@akankshadua.com",
-        role: "Super Admin",
-        imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150",
-        status: "Active",
-        lastActive: new Date().toISOString()
-      };
-      setAuth({ user: fallbackUser, isLoggedIn: true });
       return { success: true };
     }
-    return { success: false, message: "User not found. Use 'admin@akankshadua.com' / 'admin123'" };
+
+    // Default fallback admin
+    const fallbackUser = {
+      id: "usr-1",
+      name: "TechMaster",
+      email: "admin@techmaster.com",
+      role: "Super Admin",
+      imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150",
+      status: "Active",
+      lastActive: new Date().toISOString()
+    };
+    persistAuth({ user: fallbackUser, isLoggedIn: true });
+    return { success: true };
   };
 
   // Logout handler
   const logout = () => {
-    setAuth({ user: null, isLoggedIn: false });
-    localStorage.removeItem('zenvora_auth');
+    persistAuth({ user: null, isLoggedIn: false });
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('zenvora_auth');
+    }
+  };
+
+  // Profile update handler
+  const updateProfile = (updatedFields) => {
+    setAuth(prev => {
+      if (!prev.isLoggedIn || !prev.user) return prev;
+      const updatedUser = { ...prev.user, ...updatedFields };
+      return {
+        ...prev,
+        user: updatedUser
+      };
+    });
+    // Also update in db.users list
+    if (auth.user) {
+      setDb(prev => {
+        const list = prev.users || [];
+        const updatedList = list.map(item => {
+          if (item.id === auth.user.id) {
+            return { ...item, ...updatedFields };
+          }
+          return item;
+        });
+        return {
+          ...prev,
+          users: updatedList
+        };
+      });
+    }
   };
 
   // Password change
   const changePassword = (currentPass, newPass) => {
-    if (currentPass === 'admin123' || currentPass === 'AkankshaDua2026') {
+    if (currentPass === 'admin123' || currentPass === 'TechMasterDua2026') {
       // Mock successful change
       return { success: true, message: "Password updated successfully." };
     }
@@ -101,7 +244,7 @@ export const DatabaseProvider = ({ children }) => {
   // Forgot password mock
   const requestPasswordReset = (email) => {
     const matchedUser = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (matchedUser || email === 'admin@akankshadua.com') {
+    if (matchedUser || email === 'admin@techmaster.com') {
       return { success: true, message: "Reset link/code sent to your registered email address." };
     }
     return { success: false, message: "Email address not registered." };
@@ -152,6 +295,23 @@ export const DatabaseProvider = ({ children }) => {
     });
   };
 
+  // Delete Nested Item (Helper for Services)
+  const deleteNestedItem = (sectionName, listKey, id) => {
+    console.log("deleteNestedItem called for:", sectionName, listKey, id);
+    setDb(prev => {
+      const list = prev[sectionName]?.[listKey] || [];
+      const updatedList = list.filter(item => String(item.id) !== String(id));
+      console.log("deleteNestedItem original list length:", list.length, "updated list length:", updatedList.length);
+      return {
+        ...prev,
+        [sectionName]: {
+          ...prev[sectionName],
+          [listKey]: updatedList
+        }
+      };
+    });
+  };
+
   // Quick Status Toggle
   const toggleStatus = (collection, id) => {
     setDb(prev => {
@@ -179,15 +339,20 @@ export const DatabaseProvider = ({ children }) => {
     });
   };
 
-  // Update single object sections (Homepage, About, Settings, MissionVision)
   const updateSection = (sectionName, data) => {
-    setDb(prev => ({
-      ...prev,
-      [sectionName]: {
-        ...prev[sectionName],
-        ...data
-      }
-    }));
+    console.log("updateSection called for section:", sectionName, "with data:", data);
+    setDb(prev => {
+      const isArray = Array.isArray(data);
+      const nextState = {
+        ...prev,
+        [sectionName]: isArray ? data : {
+          ...prev[sectionName],
+          ...data
+        }
+      };
+      console.log("Database nextState resolved to:", nextState);
+      return nextState;
+    });
   };
 
   // Mark notification as read
@@ -213,8 +378,10 @@ export const DatabaseProvider = ({ children }) => {
       addItem,
       updateItem,
       deleteItem,
+      deleteNestedItem,
       toggleStatus,
       updateSection,
+      updateProfile,
       markNotificationRead,
       clearAllNotifications
     }}>

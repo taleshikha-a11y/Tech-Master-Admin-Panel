@@ -6,11 +6,11 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { TiltCard } from '../../components/ui/TiltCard';
 
-export const AuthContainer = () => {
+export const AuthContainer = ({ onAuthSuccess }) => {
   const { login, requestPasswordReset, changePassword } = useDatabase();
   const [mode, setMode] = useState('login'); // login, forgot, change
   
-  const [email, setEmail] = useState('admin@akankshadua.com');
+  const [email, setEmail] = useState('admin@techmaster.com');
   const [password, setPassword] = useState('admin123');
   
   const [forgotEmail, setForgotEmail] = useState('');
@@ -24,23 +24,29 @@ export const AuthContainer = () => {
   const [loading, setLoading] = useState(false);
 
   const handleLoginSubmit = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
     setError('');
     setLoading(true);
 
-    setTimeout(() => {
-      try {
-        const res = login(email, password);
-        setLoading(false);
-        if (!res.success) {
-          setError(res.message);
-        }
-      } catch (err) {
-        console.error("Login submission failed:", err);
-        setLoading(false);
-        setError("System login failure: " + err.message);
+    try {
+      const res = login(email, password);
+      setLoading(false);
+
+      if (!res.success) {
+        setError(res.message || 'Authentication failed.');
+        return;
       }
-    }, 800);
+
+      if (typeof onAuthSuccess === 'function') {
+        onAuthSuccess();
+      }
+    } catch (err) {
+      console.error("Login submission failed:", err);
+      setLoading(false);
+      setError("System login failure: " + err.message);
+    }
   };
 
   const handleForgotSubmit = (e) => {
@@ -100,20 +106,20 @@ export const AuthContainer = () => {
         {/* Brand Header */}
         <div className="text-center mb-8 flex flex-col items-center gap-3">
           <div className="w-14 h-14 rounded-full bg-gradient-to-r from-luxury-gold to-luxury-darkgold flex items-center justify-center text-black font-serif font-black text-2xl shadow-gold-glow-lg border border-luxury-lightgold/20">
-            A
+            TM
           </div>
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-bold tracking-widest font-serif gold-text-gradient">
-              AKANKSHA DUA
+              TECHMASTER
             </h1>
             <p className="text-[10px] tracking-[0.25em] text-zinc-500 uppercase font-mono">
-              EXECUTIVE CMS PANEL
+              ADMIN PANEL
             </p>
           </div>
         </div>
 
         {/* Auth Box */}
-        <TiltCard className="p-8 relative overflow-hidden border border-zinc-800/80" maxTilt={15}>
+        <div className="glass-panel p-8 relative overflow-hidden border border-zinc-800/80 rounded-lg">
           <AnimatePresence mode="wait">
             {mode === 'login' && (
               <motion.div
@@ -131,7 +137,7 @@ export const AuthContainer = () => {
                   <Input
                     label="Executive Email"
                     type="email"
-                    placeholder="e.g. admin@akankshadua.com"
+                    placeholder="e.g. admin@techmaster.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -168,7 +174,8 @@ export const AuthContainer = () => {
                   )}
 
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={handleLoginSubmit}
                     disabled={loading}
                     className="w-full py-3 mt-2 flex items-center justify-center gap-2 border border-luxury-gold/35 bg-zinc-950/60 hover:bg-luxury-gold/5 text-luxury-gold hover:text-white rounded-md font-semibold transition-all duration-300 cursor-pointer disabled:opacity-50"
                   >
@@ -213,7 +220,7 @@ export const AuthContainer = () => {
                   <Input
                     label="Registered Email"
                     type="email"
-                    placeholder="e.g. admin@akankshadua.com"
+                    placeholder="e.g. admin@techmaster.com"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     required
@@ -343,7 +350,7 @@ export const AuthContainer = () => {
               </motion.div>
             )}
           </AnimatePresence>
-        </TiltCard>
+        </div>
 
         {/* Demo login reminder */}
         {mode === 'login' && (
@@ -355,7 +362,7 @@ export const AuthContainer = () => {
           >
             <p className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-1">Testing Credentials</p>
             <p className="text-[11px] text-zinc-400">
-              Email: <span className="text-luxury-gold font-mono font-semibold">admin@akankshadua.com</span>
+              Email: <span className="text-luxury-gold font-mono font-semibold">admin@techmaster.com</span>
             </p>
             <p className="text-[11px] text-zinc-400">
               Password: <span className="text-luxury-gold font-mono font-semibold">admin123</span>

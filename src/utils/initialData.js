@@ -1,6 +1,375 @@
-// Realistic mock data for Akanksha Dua's personal luxury brand CMS
+// Realistic mock data for TechMaster's personal luxury brand CMS
 
 export const initialData = {
+  mediaLibrary: [],
+  // ==========================================
+  // ENTERPRISE GLOBAL SEO SCHEMA
+  // ==========================================
+  globalSEO: {
+    websiteName: "TechMaster | Luxury Digital Native",
+    websiteUrl: "https://techmaster.com",
+    defaultTitle: "TechMaster - Architect of Luxury Digital Experiences",
+    defaultDescription: "Portfolio of TechMaster, an elite developer specializing in high-fidelity 3D configurations, interactive cinema, and luxury digital architecture.",
+    defaultKeywords: "Luxury Web Design, Three.js, React, 3D Configurations, TechMaster",
+    canonicalURL: "https://techmaster.com",
+    favicon: "/favicon.ico",
+    appleIcon: "/apple-touch-icon.png",
+    androidIcon: "/android-chrome-192x192.png",
+    defaultOGTitle: "TechMaster - Luxury Digital Native",
+    defaultOGDescription: "Discover interactive luxury digital experiences.",
+    defaultOGImage: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&q=80&w=1200",
+    twitterCard: "summary_large_image",
+    twitterSite: "@techmaster",
+    twitterCreator: "@techmaster",
+    analytics: {
+      googleAnalyticsId: "G-XXXXXXXXXX",
+      gtmId: "GTM-XXXXXXX",
+      metaPixelId: "",
+      clarityId: "",
+      linkedinInsight: "",
+      customHeaderScript: "",
+      customFooterScript: ""
+    },
+    verificationCodes: {
+      google: "",
+      bing: "",
+      yandex: "",
+      pinterest: ""
+    },
+    businessInformation: {
+      name: "TechMaster Studios",
+      type: "Creative Agency",
+      email: "hello@techmaster.com",
+      phone: "+1 (555) 123-4567",
+      address: "100 Luxury Avenue",
+      country: "United States",
+      state: "CA",
+      city: "Beverly Hills",
+      postalCode: "90210",
+      latitude: "34.0736",
+      longitude: "-118.4004",
+      logo: "https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?auto=format&fit=crop&q=80&w=200"
+    },
+    socialLinks: [
+      { id: "gsl-1", platform: "Instagram", url: "https://instagram.com/techmaster", order: 1 },
+      { id: "gsl-2", platform: "LinkedIn", url: "https://linkedin.com/in/techmaster", order: 2 }
+    ],
+    robotsSettings: "User-agent: *\nDisallow: /admin/\nDisallow: /config/\n\nSitemap: https://techmaster.com/sitemap.xml",
+    sitemapSettings: "https://techmaster.com/sitemap.xml",
+    globalToggles: {
+      enableSEO: true,
+      allowIndexing: true,
+      autoSitemap: true,
+      autoRobots: true,
+      forceHTTPS: true,
+      enableSchema: true
+    }
+  },
+
+  pageSEO: [
+    { id: "pseo-home", pageName: "Home", slug: "/", useGlobalSEO: true, metaTitle: "", metaDescription: "", keywords: "", canonicalURL: "", ogTitle: "", ogDescription: "", ogImage: "", robots: "index, follow", indexStatus: true, followStatus: true, priority: "1.0", changeFrequency: "daily", lastModified: "2026-07-10" },
+    { id: "pseo-about", pageName: "About", slug: "/about", useGlobalSEO: true, metaTitle: "", metaDescription: "", keywords: "", canonicalURL: "", ogTitle: "", ogDescription: "", ogImage: "", robots: "index, follow", indexStatus: true, followStatus: true, priority: "0.8", changeFrequency: "weekly", lastModified: "2026-07-10" },
+    { id: "pseo-portfolio", pageName: "Portfolio", slug: "/portfolio", useGlobalSEO: false, metaTitle: "Elite Digital Portfolio | TechMaster", metaDescription: "Explore case studies of award-winning digital experiences built for Vogue, Chanel, and Forbes.", keywords: "Portfolio, Case Studies, Development", canonicalURL: "https://techmaster.com/portfolio", ogTitle: "Elite Digital Portfolio | TechMaster", ogDescription: "Explore case studies of award-winning digital experiences.", ogImage: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&q=80&w=1200", robots: "index, follow", indexStatus: true, followStatus: true, priority: "0.9", changeFrequency: "weekly", lastModified: "2026-07-10" },
+    { id: "pseo-contact", pageName: "Contact", slug: "/contact", useGlobalSEO: true, metaTitle: "", metaDescription: "", keywords: "", canonicalURL: "", ogTitle: "", ogDescription: "", ogImage: "", robots: "index, follow", indexStatus: true, followStatus: true, priority: "0.7", changeFrequency: "monthly", lastModified: "2026-07-10" }
+  ],
+
+  contactHeroSetup: {
+    enable: true,
+    label: "Contact Us",
+    mainLine1: "Get In",
+    highlight: "Touch",
+    description: "Whether you have a general inquiry, a partnership proposal, or just want to say hello, we are here to help.",
+    glowEnable: true
+  },
+  contactInfoSetup: {
+    enableEmail: true,
+    email: "contact@techmaster.com",
+    emailIcon: "mail",
+    enablePhone: true,
+    phone: "+1 800 123 4567",
+    phoneIcon: "phone",
+    enableLocation: true,
+    locationTitle: "Studio Location",
+    address: "Nariman Point Creative Studio, Mumbai",
+    locationIcon: "map-pin"
+  },
+  contactWhatsAppSetup: {
+    enable: true,
+    number: "919999911111",
+    buttonText: "Chat on WhatsApp",
+    description: "Quick responses via WhatsApp Support",
+    openNewTab: true
+  },
+  contactMapSetupData: {
+    enable: true,
+    url: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d120935.91893962692!2d72.76678284562086!3d18.98305888251291!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7ce36603d6d07%3A0x6b4fb4396a56e792!2sNariman%20Point%2C%20Mumbai%2C%20Maharashtra!5e0!3m2!1sen!2sin!4v1689255655555!5m2!1sen!2sin",
+    height: "300",
+    rounded: true,
+    darkMode: true
+  },
+  contactFormConfig: {
+    enable: true,
+    title: "Business Inquiry Form",
+    buttonText: "Submit Inquiry",
+    successTitle: "Inquiry Sent!",
+    successDesc: "Thank you for reaching out. We will get back to you shortly.",
+    receiveEmail: true
+  },
+  contactFormFields: [
+    { id: "cff-1", enable: true, required: true, label: "Full Name", placeholder: "e.g. Gabriella Rossi", order: 1 },
+    { id: "cff-2", enable: true, required: true, label: "Email Address", placeholder: "gabriella@gmail.com", order: 2 },
+    { id: "cff-3", enable: true, required: true, label: "Company / Brand", placeholder: "e.g. Dior", order: 3 },
+    { id: "cff-4", enable: true, required: true, label: "Inquiry Category", placeholder: "Select category", order: 4 },
+    { id: "cff-5", enable: true, required: true, label: "Message", placeholder: "Type your message here...", order: 5 }
+  ],
+  contactCategoriesSetup: [
+    { id: "cc-1", name: "Business Inquiry", value: "business", status: true },
+    { id: "cc-2", name: "Brand Collaboration", value: "collab", status: true },
+    { id: "cc-3", name: "Campaign", value: "campaign", status: true },
+    { id: "cc-4", name: "Product Launch", value: "launch", status: true },
+    { id: "cc-5", name: "Events", value: "events", status: true },
+    { id: "cc-6", name: "Media", value: "media", status: true },
+    { id: "cc-7", name: "Speaking", value: "speaking", status: true },
+    { id: "cc-8", name: "Sponsorship", value: "sponsorship", status: true },
+    { id: "cc-9", name: "Other", value: "other", status: true }
+  ],
+  contactSocialLinksSetup: [
+    { id: "csl-1", platform: "Instagram", handle: "@techmaster", url: "https://instagram.com", icon: "instagram", order: 1, status: true, newTab: true },
+    { id: "csl-2", platform: "LinkedIn", handle: "TechMaster", url: "https://linkedin.com", icon: "linkedin", order: 2, status: true, newTab: true },
+    { id: "csl-3", platform: "YouTube", handle: "TechMaster", url: "https://youtube.com", icon: "youtube", order: 3, status: true, newTab: true }
+  ],
+  contactSEOSetup: {
+    title: "Contact Us - Zenvora",
+    description: "Get in touch for collaborations and inquiries.",
+    keywords: "contact, luxury, brand, collaboration",
+    ogImage: "",
+    canonical: "https://techmaster.com/contact",
+    indexing: true
+  },
+  contactVisibilitySetup: {
+    hero: true,
+    info: true,
+    whatsapp: true,
+    map: true,
+    form: true,
+    social: true
+  },
+
+  faqSettings: {
+    enabled: true,
+    badge: "FAQ",
+    heading: "Frequently Asked",
+    highlightHeading: "Questions",
+    description: "Find answers to our most common inquiries. Can't find what you need? Reach out directly via our contact hub.",
+    backgroundImage: ""
+  },
+  faqCategories: [
+    { id: "fc-1", name: "General", slug: "general", displayOrder: 1, isActive: true },
+    { id: "fc-2", name: "Booking", slug: "booking", displayOrder: 2, isActive: true },
+    { id: "fc-3", name: "Services", slug: "services", displayOrder: 3, isActive: true },
+    { id: "fc-4", name: "Pricing", slug: "pricing", displayOrder: 4, isActive: true }
+  ],
+
+  contactHero: {
+    badge: "Contact Hub",
+    titleLine1: "Connect with",
+    titleLine2: "Our Team",
+    description: "Whether you have a general inquiry, a partnership proposal, or just want to say hello, we are here to help.",
+    active: true
+  },
+  contactFormsSetup: {
+    generalTitle: "General Contact Form",
+    generalButtonText: "Submit General Inquiry",
+    generalActive: true,
+    businessTitle: "Business Inquiry Form",
+    businessButtonText: "Dispatch Business Proposal",
+    businessActive: true
+  },
+  contactSocials: [
+    { id: "cs-1", platform: "Instagram", url: "https://instagram.com", icon: "instagram", active: true, order: 1 },
+    { id: "cs-2", platform: "YouTube", url: "https://youtube.com", icon: "youtube", active: true, order: 2 },
+    { id: "cs-3", platform: "LinkedIn", url: "https://linkedin.com", icon: "linkedin", active: true, order: 3 },
+    { id: "cs-4", platform: "Facebook", url: "https://facebook.com", icon: "facebook", active: true, order: 4 }
+  ],
+  contactMapSetup: {
+    title: "Studio Location Map",
+    coordinates: "18°55'N, 72°49'E",
+    district: "Nariman Point District",
+    address: "Nariman Point Creative Studio, Mumbai",
+    active: true
+  },
+
+  blogHero: {
+    badge: "CREATOR JOURNAL",
+    titleLine1: "Thoughts on Tech",
+    titleLine2: "education & scalability.",
+    animationEnabled: true,
+    glowEnabled: true,
+    active: true
+  },
+  featuredStrategy: {
+    badge: "Featured Strategy",
+    titleLine1: "Engineering",
+    titleLine2: "Content Marketing",
+    titleLine3: "Excellence",
+    description: "Traditional advertising has diminishing returns. We help engineering brands build market authority through high-utility technical content, storytelling, and high-impact distribution loops.",
+    active: true
+  },
+  strategyStats: [
+    { id: "ss-1", number: "10M+", label: "Impressions", order: 1, active: true },
+    { id: "ss-2", number: "+150%", label: "Engagement", order: 2, active: true },
+    { id: "ss-3", number: "4.8x", label: "Content ROI", order: 3, active: true }
+  ],
+  strategyPillars: [
+    { id: "sp-1", icon: "Users", title: "Audience Retention", description: "Translate complex system architecture into clean narratives.", order: 1, active: true },
+    { id: "sp-2", icon: "BarChart3", title: "Search Dominance", description: "Rank first for high-intent queries that developers actually search.", order: 2, active: true },
+    { id: "sp-3", icon: "TrendingUp", title: "Distribution Loops", description: "Syndicate deep-dives into social threads, shorts, and digests.", order: 3, active: true }
+  ],
+  strategyPresets: [
+    { id: "solopreneur", presetName: "solopreneur", badge: "Solo Creator", impressions: "50K - 100K+", channel: "Twitter/X, Dev.to & LinkedIn", focus: "Build in public, share raw learnings, create highly readable dev cheatsheets.", roi: "High authority, premium lead acquisition", active: true },
+    { id: "startup", presetName: "startup", badge: "Growth Startup", impressions: "250K - 500K+", channel: "GitHub, Medium, Tech Newsletters", focus: "Detailed technical case studies, comparisons, integration guides, and live streams.", roi: "Product signups, community growth", active: true },
+    { id: "enterprise", presetName: "enterprise", badge: "Enterprise Brand", impressions: "1M - 5M+", channel: "YouTube Documentaries, Dedicated Hubs", focus: "High-production whitepapers, engineering-led media channels.", roi: "Market standard positioning, enterprise adoption", active: true }
+  ],
+  quickBlueprint: {
+    title: "Need a custom playbook?",
+    description: "Learn how we craft tailored content programs for developer-first companies.",
+    buttonText: "Read Guide",
+    buttonUrl: "#",
+    active: true
+  },
+  blogCategories: [
+    { id: "bc-1", name: "All", slug: "all", order: 1, active: true },
+    { id: "bc-2", name: "Lifestyle", slug: "lifestyle", order: 2, active: true },
+    { id: "bc-3", name: "Marketing", slug: "marketing", order: 3, active: true },
+    { id: "bc-4", name: "Branding", slug: "branding", order: 4, active: true },
+    { id: "bc-5", name: "Creator Journey", slug: "creator-journey", order: 5, active: true },
+    { id: "bc-6", name: "Tips", slug: "tips", order: 6, active: true },
+    { id: "bc-7", name: "Latest News", slug: "latest-news", order: 7, active: true }
+  ],
+  latestInsights: {
+    title: "Latest Insights",
+    subtitle: "Browse thoughts, guides, and updates from the team",
+    active: true
+  },
+  blogPageSettings: {
+    showHero: true,
+    showStrategy: true,
+    showLatest: true,
+    showFilters: true,
+    hoverAnimations: true
+  },
+  blogSEO: {
+    metaTitle: "Tech Master | Creator Journal",
+    metaDescription: "Read the latest thoughts on tech education and scalable engineering content marketing.",
+    keywords: "tech, education, marketing, dev",
+    canonical: "https://zenvora.com/blog",
+    robots: "index, follow"
+  },
+
+  careerHero: {
+    badge: "JOIN THE TEAM",
+    titleLine1: "Join Aman's",
+    titleLine2: "Creator & Education Lab",
+    description: "We look for cinematic editors, curriculum writers, and developer advocates who want to construct the future of tech education.",
+    bgImageUrl: "",
+    bgVideoUrl: "",
+    status: true
+  },
+  careerCulture: [
+    { id: "cc-1", title: "Remote First", description: "Work from anywhere in the world. We believe in output, not office hours.", icon: "Globe", order: 1, active: true },
+    { id: "cc-2", title: "Learning Budget", description: "$2,000 annual stipend for courses, books, and conference tickets.", icon: "Book", order: 2, active: true },
+    { id: "cc-3", title: "Health & Wellness", description: "Premium global health coverage and mental wellness stipends.", icon: "Heart", order: 3, active: true },
+    { id: "cc-4", title: "Creator Autonomy", description: "Own your projects. We cultivate leaders who can drive their own vision.", icon: "Star", order: 4, active: true }
+  ],
+  careerProcess: [
+    { id: "cp-1", step: "01", title: "Application Review", description: "We review your portfolio, GitHub, and application answers.", active: true },
+    { id: "cp-2", step: "02", title: "Intro Call", description: "A 30-minute culture and vibe check with our ops team.", active: true },
+    { id: "cp-3", step: "03", title: "Technical Task", description: "A paid, asynchronous take-home project relevant to your role.", active: true },
+    { id: "cp-4", step: "04", title: "Final Interview", description: "A conversation with Aman and the leads. No live whiteboarding.", active: true }
+  ],
+  careerStats: {
+    employees: "50+",
+    countries: "12",
+    success: "98%",
+    openPositions: "15",
+    animateCounters: true
+  },
+  careerGallery: [],
+  careerFAQ: [],
+  careerSEO: {},
+  careerSettings: {
+    showHero: true,
+    showJobs: true,
+    showCulture: true,
+    showProcess: true,
+    showStats: true,
+    showGallery: true,
+    showFAQ: true
+  },
+
+  testHero: {
+    badge: "COMMUNITY ACCLAIM",
+    titleLine1: "Student Placements &",
+    titleLine2: "Academics Success",
+    description: "Discover reviews from Aman's mentored students, university professors, and tech partners who have integrated our curricula.",
+    bgImageUrl: "",
+    bgVideoUrl: "",
+    overlayEnabled: true,
+  },
+  testVideos: [
+    {
+      id: "tv-1",
+      title: "Sarah Jenkins",
+      description: "VP of Engineering, Acme Corp",
+      thumbnail: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80",
+      videoUrl: "",
+      youtubeUrl: "",
+      duration: "02:30",
+      category: "Corporate",
+      active: true,
+      featured: true,
+      order: 1
+    },
+    {
+      id: "tv-2",
+      title: "David Chen",
+      description: "Founder, StartupX",
+      thumbnail: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=600&q=80",
+      videoUrl: "",
+      youtubeUrl: "",
+      duration: "01:45",
+      category: "Corporate",
+      active: true,
+      featured: true,
+      order: 2
+    }
+  ],
+  testStats: [
+    { id: "st-1", value: "94.2%", label: "Placement Rate", order: 1, active: true },
+    { id: "st-2", value: "$120K", label: "Average Salary", order: 2, active: true },
+    { id: "st-3", value: "15,000+", label: "Students Hired", order: 3, active: true },
+    { id: "st-4", value: "450+", label: "Tech Partners", order: 4, active: true }
+  ],
+  testGallery: [],
+  testCategories: [
+    { id: "tc-1", name: "Students", isVisible: true },
+    { id: "tc-2", name: "Corporate", isVisible: true },
+    { id: "tc-3", name: "Influencers", isVisible: true },
+    { id: "tc-4", name: "Brands", isVisible: true },
+    { id: "tc-5", name: "Celebrities", isVisible: true },
+    { id: "tc-6", name: "Faculty", isVisible: true },
+    { id: "tc-7", name: "Partners", isVisible: true },
+    { id: "tc-8", name: "Media", isVisible: true }
+  ],
+  testSettings: {
+    showHero: true,
+    showTextReviews: true,
+    showVideoReviews: true,
+    showStats: true,
+    showGallery: true
+  },
+  testSEO: {},
+
   // 1. SERVICES
   services: [
     {
@@ -84,7 +453,7 @@ export const initialData = {
       collabDate: "2026-03-15",
       metrics: "Featured Cover & 8-page Editorial",
       showcaseUrl: "https://vogue.in",
-      campaignDescription: "Exclusive cover story and double-page cinematic spread highlighting Akanksha's journey in shaping creator-driven HNW agencies.",
+      campaignDescription: "Exclusive cover story and double-page cinematic spread highlighting TechMaster's journey in shaping creator-driven HNW agencies.",
       kpis: [
         { label: "Print Distribution", value: "120K" },
         { label: "Online Article Reads", value: "1.2M" },
@@ -136,6 +505,56 @@ export const initialData = {
       createdAt: "2026-06-21T09:00:00Z"
     }
   ],
+  
+  // BRAND COLLABORATIONS PAGE (NEW MULTI-SECTION CMS SCHEMA)
+  collaborationsPage: {
+    hero: {
+      eyebrowText: "BRAND COOPERATIONS",
+      title: "Alliances & Brand Collaborations",
+      highlightedTitle: "Alliances",
+      description: "Discover our strategic alliances and collaborative campaigns with top-tier brands.",
+      status: "Active"
+    },
+    brandCarousel: [
+      { id: "bc-1", brandName: "Vercel", logoImage: "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&q=80&w=150", order: 1, status: "Active" },
+      { id: "bc-2", brandName: "Google Cloud", logoImage: "https://images.unsplash.com/photo-1627163430005-502a0a2df335?auto=format&fit=crop&q=80&w=150", order: 2, status: "Active" }
+    ],
+    partners: [
+      { id: "pt-1", name: "Gucci", logo: "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&q=80&w=150", type: "Luxury", featuredWork: "Neo-Heritage Handbag", description: "Launch of the premium handbag series.", accentColor: "#D4AF37", status: "Active" }
+    ],
+    metrics: [
+      { id: "mt-1", value: "50+", label: "Brand Partners", order: 1, status: "Active" },
+      { id: "mt-2", value: "$2M+", label: "Sponsored Cloud Credits", order: 2, status: "Active" },
+      { id: "mt-3", value: "20+", label: "Global Hackathons", order: 3, status: "Active" },
+      { id: "mt-4", value: "5M+", label: "Campaign Impressions", order: 4, status: "Active" }
+    ],
+    campaigns: [
+      { id: "cp-1", title: "Build in Public", description: "A 30-day challenge where 10,000 developers built and deployed Next.js applications on Vercel.", image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=1200", buttonText: "View Case Study", buttonLink: "#", accentColor: "#D4AF37", status: "Active" }
+    ],
+    history: {
+      eyebrow: "OUR JOURNEY",
+      title: "Collaboration History",
+      highlightedTitle: "History",
+      description: "Since our first brand deal in 2018...",
+      cardTitle: "From Startups to Enterprises",
+      cardDescription: "A journey of impactful alliances."
+    },
+    process: [
+      { id: "pr-1", stepNumber: "01", title: "Discovery & Alignment", description: "Understanding the brand vision.", order: 1, status: "Active" },
+      { id: "pr-2", stepNumber: "02", title: "Creative Strategy", description: "Planning the campaign elements.", order: 2, status: "Active" },
+      { id: "pr-3", stepNumber: "03", title: "Production", description: "Executing the creative vision.", order: 3, status: "Active" },
+      { id: "pr-4", stepNumber: "04", title: "Launch & Analytics", description: "Deploying and measuring success.", order: 4, status: "Active" }
+    ],
+    testimonials: [
+      { id: "tm-1", quote: "Working with the team has been transformative for our digital presence.", personName: "Sarah Jenkins", designation: "Developer Advocate", company: "Vercel", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150", accentColor: "#D4AF37", status: "Active" }
+    ],
+    seo: {
+      metaTitle: "Brand Collaborations - Zenvora",
+      metaDescription: "Explore our exclusive brand cooperations and case studies.",
+      keywords: "brands, collaborations, alliances",
+      ogImage: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=1200"
+    }
+  },
 
   // 3. CAMPAIGNS
   campaigns: [
@@ -260,192 +679,261 @@ export const initialData = {
   ],
 
   // 6. PORTFOLIO
+  portfolioHero: {
+    smallHeading: "CURATED SHOWCASES",
+    mainHeadingLine1: "VISUAL",
+    mainHeadingLine2: "MASTERPIECES",
+    highlightText: "MASTERPIECES",
+    description: "The executive content management platform for TechMaster's official creator network portfolio, campaigns, and luxury consultation services.",
+    bgOverlay: true,
+    bgImageUrl: "https://images.unsplash.com/photo-1542435503-956c469947f6?auto=format&fit=crop&q=80&w=1920",
+    bgVideoUrl: "",
+    gradient: "linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.2))",
+    glowEffect: true,
+    isVisible: true
+  },
+
+  portfolioFilters: [
+    { id: "pf-1", name: "Videos", slug: "videos", order: 1, isVisible: true, icon: "Video", color: "#3B82F6" },
+    { id: "pf-2", name: "Photos", slug: "photos", order: 2, isVisible: true, icon: "Image", color: "#F43F5E" },
+    { id: "pf-3", name: "Projects", slug: "projects", order: 3, isVisible: true, icon: "Monitor", color: "#10B981" },
+    { id: "pf-4", name: "Campaigns", slug: "campaigns", order: 4, isVisible: true, icon: "Award", color: "#D4AF37" },
+    { id: "pf-5", name: "Reels", slug: "reels", order: 5, isVisible: true, icon: "Smartphone", color: "#8B5CF6" },
+    { id: "pf-6", name: "Commercial Shoots", slug: "commercial-shoots", order: 6, isVisible: true, icon: "Camera", color: "#F59E0B" },
+    { id: "pf-7", name: "Client Work", slug: "client-work", order: 7, isVisible: true, icon: "Briefcase", color: "#64748B" }
+  ],
+
   portfolio: [
     {
       id: "port-1",
       title: "Chasing Shadows - Noir Fashion Film",
+      subtitle: "Cinematic Exploration of Light",
       client: "Vogue India & Chanel",
-      serviceType: "Commercial Shoots",
-      portfolioType: "Videos",
-      imageUrl: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800",
-      videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-fashion-woman-with-silver-glitter-makeup-40439-large.mp4",
-      completionDate: "2026-04-20",
-      isActive: true,
-      createdAt: "2026-04-22T08:00:00Z"
-    },
-    {
-      id: "port-2",
-      title: "Metropolitan Nomad Photo Series",
-      client: "GQ Gentlemen's Luxury",
-      serviceType: "Commercial Shoots",
-      portfolioType: "Photos",
-      imageUrl: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=800",
-      videoUrl: "",
-      completionDate: "2026-02-18",
-      isActive: true,
-      createdAt: "2026-02-20T10:00:00Z"
-    },
-    {
-      id: "port-3",
-      title: "The Golden Ratio - 3D Architecture Campaign",
-      client: "DLF Signature Homes",
-      serviceType: "Corporate Collaborations",
-      portfolioType: "Client Work",
-      imageUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800",
-      videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-luxury-modern-house-and-pool-42512-large.mp4",
-      completionDate: "2026-06-05",
-      isActive: true,
-      createdAt: "2026-06-06T15:00:00Z"
-    },
-    {
-      id: "port-4",
-      title: "Aura Perfume Launch Film",
-      client: "Maison Lumière",
-      serviceType: "Product Launches",
-      portfolioType: "Campaigns",
-      imageUrl: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=800",
-      videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-fashion-shot-makeup-model-34691-large.mp4",
-      completionDate: "2026-05-10",
-      isActive: true,
-      createdAt: "2026-05-12T10:00:00Z"
-    },
-    {
-      id: "port-5",
-      title: "Noir Portrait Series",
-      client: "Harper's Bazaar India",
-      serviceType: "Content Creation",
-      portfolioType: "Projects",
-      imageUrl: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=800",
-      videoUrl: "",
-      completionDate: "2026-03-28",
-      isActive: true,
-      createdAt: "2026-03-30T14:00:00Z"
-    },
-    {
-      id: "port-6",
-      title: "Celestial Streetwear Campaign",
-      client: "The Label Collective",
-      serviceType: "Brand Campaigns",
-      portfolioType: "Campaigns",
-      imageUrl: "https://images.unsplash.com/photo-1542060747-6f0f6d9f07ea?auto=format&fit=crop&q=80&w=800",
-      videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-urban-fashion-brand-launch-38663-large.mp4",
-      completionDate: "2026-07-12",
-      isActive: true,
-      createdAt: "2026-07-15T12:00:00Z"
-    },
-    {
-      id: "port-7",
-      title: "Executive Client Editorial",
-      client: "Bespoke Interiors",
-      serviceType: "Corporate Collaborations",
-      portfolioType: "Client Work",
-      imageUrl: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&q=80&w=800",
-      videoUrl: "",
-      completionDate: "2026-08-02",
-      isActive: true,
-      createdAt: "2026-08-04T09:00:00Z"
-    },
-    {
-      id: "port-8",
-      title: "Luxe Streetwear Social Reel",
-      client: "Foxglove Apparel",
-      serviceType: "Commercial Shoots",
-      portfolioType: "Commercial Shoots",
-      imageUrl: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=800",
-      videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-street-fashion-model-38653-large.mp4",
-      completionDate: "2026-09-01",
-      isActive: true,
-      createdAt: "2026-09-03T11:00:00Z"
-    },
-    {
-      id: "port-9",
-      title: "Renaissance Editorial Project",
-      client: "Monarch Media",
-      serviceType: "Content Creation",
-      portfolioType: "Projects",
-      imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=800",
-      videoUrl: "",
-      completionDate: "2026-05-16",
-      isActive: true,
-      createdAt: "2026-05-18T14:00:00Z"
-    },
-    {
-      id: "port-10",
-      title: "Bespoke Boutique Client Showcase",
-      client: "La Maison Couture",
-      serviceType: "Corporate Collaborations",
-      portfolioType: "Client Work",
-      imageUrl: "https://images.unsplash.com/photo-1519418552153-814b01d1e2e4?auto=format&fit=crop&q=80&w=800",
-      videoUrl: "",
-      completionDate: "2026-09-18",
-      isActive: true,
-      createdAt: "2026-09-19T09:30:00Z"
+      category: "Commercial Shoots",
+      categories: ["Commercial Shoots", "Videos"],
+      year: "2026",
+      description: "A breathtaking cinematic exploration of light and shadow, featuring global fashion icons in bespoke haute couture.",
+      caseStudy: "The campaign challenged conventional fashion lighting by relying entirely on practical shadow play...",
+      externalUrl: "https://vogue.in/chanel-noir",
+      projectUrl: "https://chanel.com",
+      order: 1,
+      sortOrder: 1,
+      featured: true,
+      status: "Active",
+      accentColor: "#D4AF37",
+      
+      // Media
+      coverImage: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800",
+      bannerImage: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=1920",
+      galleryImages: ["https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=800"],
+      multipleVideos: ["https://assets.mixkit.co/videos/preview/mixkit-fashion-woman-with-silver-glitter-makeup-40439-large.mp4"],
+      youtubeUrl: "",
+      vimeoUrl: "",
+      
+      // Metadata
+      tags: ["Cinematography", "Fashion", "VFX"],
+      technology: ["Unreal Engine 5", "DaVinci Resolve"],
+      industry: "Fashion",
+      location: "Mumbai, India",
+      duration: "3 Weeks",
+      photographer: "Rahul Sharma",
+      director: "TechMaster",
+      brand: "Chanel",
+      agency: "TechMaster Innovations",
+      credits: "Styling: Anaita Shroff, VFX: Studio Red",
+      awards: "Best Fashion Film 2026",
+      
+      // SEO
+      seoTitle: "Vogue Chanel Shoot - Noir Fashion",
+      seoDescription: "View our latest fashion film collaboration with Vogue India.",
+      metaKeywords: "Chanel, Vogue, Noir, Fashion Film, TechMaster",
+      canonicalUrl: "https://techmaster.com/portfolio/vogue-chanel",
+      ogImage: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=1200",
+      twitterImage: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=1200",
+      schema: "{}",
+      slug: "vogue-chanel-noir",
+      
+      createdAt: "2026-04-22T08:00:00Z",
+      updatedAt: "2026-04-25T10:00:00Z"
     }
   ],
 
-  // 7. GALLERY
-  gallery: [
+  
+  // ==========================================
+  // NEW MEGA MEDIA COVERAGE CMS SCHEMAS
+  // ==========================================
+  mediaHero: {
+    badge: "NEWSROOM HUB",
+    titleLine1: "Press Kit &",
+    titleLine2: "Media Appearances.",
+    description: "Welcome to the global archive of all media and press appearances.",
+    bgImageUrl: "https://images.unsplash.com/photo-1542435503-956c469947f6?auto=format&fit=crop&q=80&w=1200",
+    bgVideoUrl: "",
+    overlayEnabled: true,
+    overlayOpacity: 0.6,
+    buttonText: "View Press Kit",
+    buttonLink: "#downloads",
+    status: "Active"
+  },
+
+  mediaFilters: [
+    { id: "mf-1", name: "Photos", slug: "photos", order: 1, isVisible: true },
+    { id: "mf-2", name: "Videos", slug: "videos", order: 2, isVisible: true },
+    { id: "mf-3", name: "Behind The Scenes", slug: "behind-the-scenes", order: 3, isVisible: true },
+    { id: "mf-4", name: "Campaign Images", slug: "campaign-images", order: 4, isVisible: true },
+    { id: "mf-5", name: "Events", slug: "events", order: 5, isVisible: true },
+    { id: "mf-6", name: "Celebrity Moments", slug: "celebrity-moments", order: 6, isVisible: true },
+    { id: "mf-7", name: "Awards", slug: "awards", order: 7, isVisible: true },
+    { id: "mf-8", name: "Travel", slug: "travel", order: 8, isVisible: true },
+    { id: "mf-9", name: "Lifestyle", slug: "lifestyle", order: 9, isVisible: true },
+    { id: "mf-10", name: "Interviews", slug: "interviews", order: 10, isVisible: true },
+    { id: "mf-11", name: "Press Releases", slug: "press-releases", order: 11, isVisible: true },
+    { id: "mf-12", name: "Podcasts", slug: "podcasts", order: 12, isVisible: true },
+    { id: "mf-13", name: "TV Features", slug: "tv-features", order: 13, isVisible: true },
+    { id: "mf-14", name: "Magazine Features", slug: "magazine-features", order: 14, isVisible: true }
+  ],
+
+  mediaCategories: [
+    { id: "mc-1", name: "Photos", isVisible: true },
+    { id: "mc-2", name: "Videos", isVisible: true },
+    { id: "mc-3", name: "Behind The Scenes", isVisible: true },
+    { id: "mc-4", name: "Campaign Images", isVisible: true },
+    { id: "mc-5", name: "Events", isVisible: true },
+    { id: "mc-6", name: "Celebrity Moments", isVisible: true },
+    { id: "mc-7", name: "Awards", isVisible: true },
+    { id: "mc-8", name: "Travel", isVisible: true },
+    { id: "mc-9", name: "Lifestyle", isVisible: true },
+    { id: "mc-10", name: "Interviews", isVisible: true },
+    { id: "mc-11", name: "Press Releases", isVisible: true },
+    { id: "mc-12", name: "Podcasts", isVisible: true },
+    { id: "mc-13", name: "TV Features", isVisible: true },
+    { id: "mc-14", name: "Magazine Features", isVisible: true }
+  ],
+
+  mediaShowreels: [
     {
-      id: "gal-1",
-      title: "Red Carpet - Cannes Film Festival",
-      type: "image",
-      category: "Celebrity Moments",
-      mediaUrl: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=800",
-      description: "Exclusive capture of the premium velvet gown presentation during the red carpet arrivals at Cannes Film Festival 2026.",
-      dimensions: "3840x2560 (4K)",
-      size: "4.8 MB",
-      isActive: true,
-      createdAt: "2026-05-22T10:00:00Z"
-    },
-    {
-      id: "gal-2",
-      title: "Behind The Scenes - Jo Malone Shoot",
-      type: "image",
-      category: "Behind the Scenes",
-      mediaUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=800",
-      description: "A candid backstage glance of the set layout, premium lighting, and boutique product arrangements for Jo Malone London.",
-      dimensions: "2048x1536 (FHD)",
-      size: "2.1 MB",
-      isActive: true,
-      createdAt: "2026-05-12T11:00:00Z"
-    },
-    {
-      id: "gal-3",
-      title: "Amalfi Coast - Travel Diary 2026",
-      type: "video",
-      category: "Travel",
-      mediaUrl: "https://assets.mixkit.co/videos/preview/mixkit-waves-crashing-on-amalfi-coast-rocks-42521-large.mp4",
-      description: "Cinematic drone loops capturing the Mediterranean shores, cliffs, and luxury yacht excursions along the Amalfi Coast.",
-      dimensions: "3840x2160 (4K)",
-      size: "45.2 MB",
-      isActive: true,
-      createdAt: "2026-06-15T09:00:00Z"
-    },
-    {
-      id: "gal-4",
-      title: "Evening Gala - Luxury Awards",
-      type: "image",
-      category: "Awards",
-      mediaUrl: "https://images.unsplash.com/photo-1469371670807-013ccf25f16a?auto=format&fit=crop&q=80&w=800",
-      description: "A panoramic showcase of the table decorations, golden lighting details, and guests at the 2026 Luxury Brand Awards.",
-      dimensions: "3000x2000 (FHD)",
-      size: "3.5 MB",
-      isActive: false,
-      createdAt: "2026-01-20T14:00:00Z"
+      id: "sr-1",
+      title: "Core Presentation Showreel",
+      description: "A comprehensive look into the luxury creator economy and premium VIP setups.",
+      thumbnail: "https://images.unsplash.com/photo-1542435503-956c469947f6?auto=format&fit=crop&q=80&w=800",
+      videoUrl: "https://youtube.com/embed/example",
+      duration: "02:45",
+      category: "Videos",
+      featured: true,
+      active: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
   ],
+
+  mediaDownloads: [
+    {
+      id: "dl-1",
+      title: "Official Press Kit 2026",
+      description: "Comprehensive brand guidelines, high-res portraits, and executive bios.",
+      thumbnail: "",
+      fileUrl: "https://example.com/presskit.pdf",
+      fileType: "PDF",
+      fileSize: "12.5 MB",
+      buttonText: "Download PDF",
+      order: 1,
+      active: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  ],
+
+  mediaMentions: [
+    {
+      id: "mm-1",
+      title: "TechMaster Redefines the Luxury Creator Economy",
+      mediaOutlet: "Forbes India",
+      author: "Jane Doe",
+      publishDate: "2026-04-10",
+      url: "https://forbes.com",
+      thumbnail: "https://images.unsplash.com/photo-1542435503-956c469947f6?auto=format&fit=crop&q=80&w=600",
+      shortDescription: "Exclusive feature on building a HNW digital creative empire.",
+      fullDescription: "In this exclusive feature, Forbes India explores how TechMaster built a HNW digital creative empire, bridging high-end luxury houses with the modern creator economy through custom 3D web configurations and storytelling.",
+      category: "Press Releases",
+      format: "Magazine",
+      featured: true,
+      active: true,
+      tags: ["Luxury", "Creator", "Forbes"],
+      seoTitle: "Forbes India Feature - TechMaster",
+      seoDescription: "Exclusive feature on building a HNW digital creative empire.",
+      seoKeywords: "Forbes, Luxury, Creator Economy",
+      slug: "forbes-india-redefines",
+      canonicalUrl: "",
+      schemaType: "Article",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  ],
+
+  mediaGallery: [
+    {
+      id: "mg-1",
+      title: "Vogue Paris Editorial Cover",
+      subtitle: "Winter Collection Exclusive",
+      description: "A comprehensive look behind the scenes of the Vogue Paris winter editorial shoot.",
+      shortDescription: "Behind the scenes of the Vogue Paris shoot.",
+      category: "Magazine Features",
+      mediaType: "Multiple Images",
+      thumbnail: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=600",
+      coverImage: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=1200",
+      previewImage: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800",
+      featuredImage: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=1200",
+      mediaFile: "",
+      mediaUrl: "",
+      mediaDuration: "",
+      resolution: "4K (3840x2160)",
+      fileSize: "24.5 MB",
+      language: "French",
+      author: "Vogue Editorial Team",
+      photographer: "Jean-Paul Gautier",
+      videographer: "",
+      publishDate: "2026-11-15",
+      order: 1,
+      isFeatured: true,
+      isTrending: true,
+      isLatest: false,
+      isPinned: false,
+      isPopular: true,
+      isEditorsPick: true,
+      isHeroBanner: false,
+      isHomepageFeatured: true,
+      status: "Published",
+      albumFiles: [
+        { url: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=1200", type: "image", caption: "Cover Shot", altText: "Model on cover" },
+        { url: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&q=80&w=1200", type: "image", caption: "Look 1", altText: "Winter coat" },
+        { url: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1200", type: "image", caption: "Look 2", altText: "Noir dress" }
+      ],
+      tags: ["Magazine", "Fashion", "Paris", "Editorial", "Winter"],
+      seoTitle: "Vogue Paris Editorial Cover | TechMaster",
+      seoDescription: "Exclusive behind the scenes of the Vogue Paris winter editorial shoot featuring luxury configurations.",
+      seoKeywords: "Vogue, Paris, Editorial, Luxury, Configurator",
+      slug: "vogue-paris-editorial-winter",
+      ogImage: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=1200",
+      twitterImage: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=1200",
+      canonicalUrl: "https://techmaster.com/gallery/vogue-paris-editorial-winter",
+      schemaType: "ImageGallery",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  ],
+  // ==========================================
 
   // 8. MEDIA COVERAGE
   coverage: [
     {
       id: "cov-1",
-      title: "Akanksha Dua Redefines the Luxury Creator Economy",
+      title: "TechMaster Redefines the Luxury Creator Economy",
       mediaOutlet: "Forbes India",
       format: "Press Releases",
       date: "2026-04-10",
       url: "https://forbes.com",
       thumbnail: "https://images.unsplash.com/photo-1542435503-956c469947f6?auto=format&fit=crop&q=80&w=600",
-      detailedExcerpt: "In this exclusive feature, Forbes India explores how Akanksha Dua built a HNW digital creative empire, bridging high-end luxury houses with the modern creator economy through custom 3D web configurations and storytelling.",
+      detailedExcerpt: "In this exclusive feature, Forbes India explores how TechMaster built a HNW digital creative empire, bridging high-end luxury houses with the modern creator economy through custom 3D web configurations and storytelling.",
       metrics: "850K Readership",
       isActive: true,
       createdAt: "2026-04-11T09:00:00Z"
@@ -471,7 +959,7 @@ export const initialData = {
       date: "2026-06-01",
       url: "https://vogue.in",
       thumbnail: "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&q=80&w=600",
-      detailedExcerpt: "Akanksha Dua shares her expert predictions on the merge between virtual luxury clothing configurators and physical showroom VIP invitation strategies.",
+      detailedExcerpt: "TechMaster shares her expert predictions on the merge between virtual luxury clothing configurators and physical showroom VIP invitation strategies.",
       metrics: "Featured Editorial Cover",
       isActive: true,
       createdAt: "2026-06-02T11:00:00Z"
@@ -484,7 +972,7 @@ export const initialData = {
       id: "test-1",
       name: "Sabrina D'Souza",
       role: "Brand Director, Armani Beauty",
-      quote: "Akanksha brings unparalleled professionalism and a meticulous eye for luxury aesthetic. Our Armani campaign exceeded all engagement forecasts.",
+      quote: "TechMaster brings unparalleled professionalism and a meticulous eye for luxury aesthetic. Our Armani campaign exceeded all engagement forecasts.",
       rating: 5,
       videoUrl: "",
       isVerified: true,
@@ -579,7 +1067,7 @@ export const initialData = {
       portfolioLink: "https://vimeo.com/rohandev",
       status: "Reviewed",
       resumeFileName: "Rohan_Varma_Showreel_2026.pdf",
-      coverLetter: "Hi Akanksha, I have been editing fashion documentaries for 4 years. I understand the luxury aesthetic, color grading, and timing. I would love to join your team.",
+      coverLetter: "Hi TechMaster, I have been editing fashion documentaries for 4 years. I understand the luxury aesthetic, color grading, and timing. I would love to join your team.",
       appliedAt: "2026-06-05T09:30:00Z"
     },
     {
@@ -622,7 +1110,7 @@ export const initialData = {
       tags: ["Luxury", "Geometry", "Design Laws"],
       coverImage: "https://images.unsplash.com/photo-1507208773393-40d9fc670acf?auto=format&fit=crop&q=80&w=800",
       publishDate: "2026-05-20",
-      author: "Akanksha Dua",
+      author: "TechMaster",
       status: "published",
       createdAt: "2026-05-19T08:00:00Z"
     },
@@ -636,7 +1124,7 @@ export const initialData = {
       tags: ["Marketing", "Analytics", "Editing"],
       coverImage: "https://images.unsplash.com/photo-1493612276216-ee3925520721?auto=format&fit=crop&q=80&w=800",
       publishDate: "2026-06-12",
-      author: "Akanksha Dua",
+      author: "TechMaster",
       status: "published",
       createdAt: "2026-06-10T10:00:00Z"
     },
@@ -650,7 +1138,7 @@ export const initialData = {
       tags: ["Travel", "Production", "Amalfi"],
       coverImage: "https://images.unsplash.com/photo-1533900298318-6b8da08a523e?auto=format&fit=crop&q=80&w=800",
       publishDate: "2026-06-28",
-      author: "Akanksha Dua",
+      author: "TechMaster",
       status: "published",
       createdAt: "2026-06-28T15:00:00Z"
     },
@@ -664,7 +1152,7 @@ export const initialData = {
       tags: ["Marketing", "HNW", "Luxury Rules"],
       coverImage: "https://images.unsplash.com/photo-1542435503-956c469947f6?auto=format&fit=crop&q=80&w=800",
       publishDate: "2026-07-01",
-      author: "Akanksha Dua",
+      author: "TechMaster",
       status: "published",
       createdAt: "2026-07-01T09:00:00Z"
     },
@@ -678,7 +1166,7 @@ export const initialData = {
       tags: ["Tips", "Social Grid", "Content Creation"],
       coverImage: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=800",
       publishDate: "2026-07-03",
-      author: "Akanksha Dua",
+      author: "TechMaster",
       status: "published",
       createdAt: "2026-07-02T11:00:00Z"
     },
@@ -688,11 +1176,11 @@ export const initialData = {
       slug: "vogue-press-cover-media-trends",
       category: "Latest News",
       readTime: "4 min read",
-      content: "Akanksha Dua is featured on the latest digital cover of Vogue Business. The editorial interview details why interactive 3D media assets and real-time custom product configurations are overriding traditional video banners.",
+      content: "TechMaster is featured on the latest digital cover of Vogue Business. The editorial interview details why interactive 3D media assets and real-time custom product configurations are overriding traditional video banners.",
       tags: ["Vogue", "Latest News", "Press Coverage"],
       coverImage: "https://images.unsplash.com/photo-1469371670807-013ccf25f16a?auto=format&fit=crop&q=80&w=800",
       publishDate: "2026-07-05",
-      author: "Akanksha Dua",
+      author: "TechMaster",
       status: "published",
       createdAt: "2026-07-04T14:00:00Z"
     }
@@ -705,7 +1193,7 @@ export const initialData = {
       senderName: "Gabriella Rossi",
       email: "g.rossi@dolcegabbana.it",
       subject: "Luxury Campaign Brand Ambassador Booking",
-      message: "Dear Akanksha, We are planning our Winter '26 Cruise campaign launch in Lake Como and would love to discuss booking you for our opening event and a series of 3 short-form commercial reels. Let us know your availability for a brief call next week.",
+      message: "Dear TechMaster, We are planning our Winter '26 Cruise campaign launch in Lake Como and would love to discuss booking you for our opening event and a series of 3 short-form commercial reels. Let us know your availability for a brief call next week.",
       category: "Booking",
       date: "2026-06-29T10:30:00Z",
       status: "Unread"
@@ -715,7 +1203,7 @@ export const initialData = {
       senderName: "Vikram Sen",
       email: "vikram@timesgroup.com",
       subject: "Invitation to Speak: India Creator Summit",
-      message: "Hello Akanksha, We would like to invite you as our key speaker for the 'Elite Creators' track. We expect an audience of 1,200 aspiring digital marketers and creators.",
+      message: "Hello TechMaster, We would like to invite you as our key speaker for the 'Elite Creators' track. We expect an audience of 1,200 aspiring digital marketers and creators.",
       category: "Sponsorship",
       date: "2026-06-25T14:00:00Z",
       status: "Read"
@@ -737,20 +1225,20 @@ export const initialData = {
     {
       id: "seo-home",
       page: "Homepage",
-      title: "Akanksha Dua | Premium Creator, Speaker & Luxury Brand Consultant",
-      description: "Explore the official portfolio, collaborations, events, and business services of Akanksha Dua, establishing standard authority in the luxury digital landscape.",
-      keywords: "Akanksha Dua, Luxury consultant, Personal branding, Vogue influencer, Keynote speaker, Fashion creator",
-      ogTitle: "Akanksha Dua - Official Personal Brand Portal",
+      title: "TechMaster | Premium Creator, Speaker & Luxury Brand Consultant",
+      description: "Explore the official portfolio, collaborations, events, and business services of TechMaster, establishing standard authority in the luxury digital landscape.",
+      keywords: "TechMaster, Luxury consultant, Personal branding, Vogue influencer, Keynote speaker, Fashion creator",
+      ogTitle: "TechMaster - Official Personal Brand Portal",
       ogType: "website",
       ogImage: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800"
     },
     {
       id: "seo-about",
       page: "About",
-      title: "About Akanksha Dua | Personal Story & Professional Core Values",
-      description: "Read the story of Akanksha Dua, her creative vision, career history, awards, achievements, and roadmap for future business ventures.",
-      keywords: "Akanksha Dua story, Biography, Career achievements, Awards, Vision and core values",
-      ogTitle: "About Akanksha Dua - The Founder's Journey",
+      title: "About TechMaster | Personal Story & Professional Core Values",
+      description: "Read the story of TechMaster, her creative vision, career history, awards, achievements, and roadmap for future business ventures.",
+      keywords: "TechMaster story, Biography, Career achievements, Awards, Vision and core values",
+      ogTitle: "About TechMaster - The Founder's Journey",
       ogType: "profile",
       ogImage: "https://images.unsplash.com/photo-1542435503-956c469947f6?auto=format&fit=crop&q=80&w=800"
     },
@@ -758,7 +1246,7 @@ export const initialData = {
       id: "seo-services",
       page: "Services",
       title: "Premium Services | Creative Direction, Consulting & Speakerships",
-      description: "Scale your high-end brand using tailored marketing programs, content creation strategies, and public speaking arrangements by Akanksha Dua.",
+      description: "Scale your high-end brand using tailored marketing programs, content creation strategies, and public speaking arrangements by TechMaster.",
       keywords: "Luxury marketing service, Hire luxury creator, Brand consulting, Creator workshop speaker",
       ogTitle: "Luxury Branding Services & Consultation Packages",
       ogType: "product",
@@ -770,8 +1258,8 @@ export const initialData = {
   users: [
     {
       id: "usr-1",
-      name: "Akanksha Dua",
-      email: "admin@akankshadua.com",
+      name: "TechMaster",
+      email: "admin@techmaster.com",
       role: "Super Admin",
       imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150",
       status: "Active",
@@ -799,148 +1287,328 @@ export const initialData = {
 
   // 16. HOMEPAGE MANAGEMENT
   homepage: {
-    hero: {
-      title: "REDEFINING DIGITAL LUXURY",
-      subtitle: "Bespoke Brand Strategy & High-Fidelity Creative Production",
-      videoBgUrl: "https://assets.mixkit.co/videos/preview/mixkit-glitter-particles-swirling-in-water-43289-large.mp4",
-      ctaText: "Explore Portfolio",
-      asset3dLink: "https://sketchfab.com/models/luxury-perfume-bottle"
-    },
-    brandStatement: {
-      quote: "Luxury is not a price tag. It is a meticulous dedication to detail, storytelling, and aesthetic consistency.",
-      author: "Akanksha Dua",
-      description: "We help traditional heritage brands and modern disruptors design digital narratives that connect with high-net-worth audiences across the globe."
-    },
-    featuredServices: ["srv-1", "srv-2"],
-    journeyHighlights: ["evt-1", "collab-2"],
-    collaborations: {
-      title: "TRUSTED BY ELITE HOUSES",
-      subtitle: "Partnering to deliver high-affinity digital experiences."
-    },
-    campaigns: {
-      headline: "FEATURED CAMPAIGNS",
-      showCount: 3
-    },
-    projects: {
-      headline: "PORTFOLIO HIGHLIGHTS"
-    },
-    testimonials: {
-      headline: "CLIENT FEEDBACK"
-    },
-    statistics: {
-      yearsActive: 7,
-      totalReach: "15M+",
-      luxuryClients: 45,
-      engagementRate: "5.8%"
-    },
+    customSections: [],
+    coreValues: [
+      { id: "cv-1", title: "Innovation", subtitle: "Future Ready", valueName: "Constant Innovation", description: "Pushing the boundaries of immersive technology.", longDescription: "We constantly strive to push the boundaries of immersive 3D technology by leveraging React Three Fiber and GSAP.", icon: "Sparkles", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300", order: 1, status: "Active" }
+    ],
+    statistics: [
+      { id: "st-new-1", counterNumber: "7", counterLabel: "Years Active", icon: "History", animationToggle: true, order: 1, activeToggle: true },
+      { id: "st-new-2", counterNumber: "45", counterLabel: "Elite Brands", icon: "Users", animationToggle: true, order: 2, activeToggle: true }
+    ],
     newsletter: {
-      title: "THE LUXURY INSIDER",
-      placeholder: "Enter your private email",
-      description: "Subtle industry analysis, marketing trends, and private event announcements delivered monthly."
+      smallHeading: "Stay Updated",
+      mainHeading: "Join Our Elite Newsletter",
+      description: "Get the latest luxury insights directly in your inbox.",
+      placeholderText: "Enter your email address...",
+      buttonText: "Subscribe Now",
+      backgroundImage: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800",
+      backgroundVideo: "",
+      leftIllustration: "",
+      rightIllustration: "",
+      successMessage: "Thank you for subscribing!",
+      errorMessage: "Something went wrong. Please try again.",
+      enableNewsletter: true,
+      enableEmailValidation: true,  enableAnimation: true,
+      privacyText: "We respect your privacy. No spam ever.",
+      enableAutoResponse: true,
+      subscribers: [
+        { id: "sub-1", name: "John Doe", email: "john@example.com", subscriptionDate: "2026-07-10T10:00:00Z", status: "Subscribed" },
+        { id: "sub-2", name: "Jane Smith", email: "jane@example.com", subscriptionDate: "2026-07-09T14:30:00Z", status: "Unsubscribed" }
+      ]
     },
-    contactPreview: {
-      headline: "DISCUSS A COLLABORATION",
-      email: "booking@akankshadua.com",
-      whatsapp: "+91 99999 11111"
+    events: {
+      sectionTitle: "Upcoming Events",
+      subtitle: "Join our exclusive gatherings",
+      description: "Discover where we'll be next.",  list: [
+        { id: "ev-1", eventImage: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800", eventBanner: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=1200", eventThumbnail: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=400", eventGalleryImages: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800,https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800", eventVideo: "https://assets.mixkit.co/videos/preview/mixkit-glitter-particles-swirling-in-water-43289-large.mp4", eventReel: "https://assets.mixkit.co/videos/preview/mixkit-glitter-particles-swirling-in-water-43289-large.mp4", eventName: "Luxury Tech Summit 2026", eventDate: "2026-09-15", eventTime: "10:00 AM", eventLocation: "Paris, France", eventCategory: "Conference", speaker: "TechMaster", shortDescription: "Annual gathering of luxury tech leaders.", fullDescription: "Join us for the most exclusive luxury technology summit in the world.", registrationButtonText: "Register Now", registrationUrl: "/events/register", featuredToggle: true, activeToggle: true, status: "Active" }
+      ]
+    },
+    hero: {
+      title: "TECHMASTER INNOVATIONS",
+      highlightTitle: "Future of Digital Operations",
+      subtitle: "Enterprise Grade Systems & Creative Productions",
+      description: "We engineer high-fidelity visual platforms, customized automation systems, and high-performance branding campaigns.",
+      desktopImageUrl: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&q=80&w=800",
+      mobileImageUrl: "",
+      videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-glitter-particles-swirling-in-water-43289-large.mp4",
+      ctaButtonText: "Explore Systems",
+      ctaButtonUrl: "/portfolio-gallery",
+      order: 1,
+      status: "Active"
+    },
+    heroSlides: [
+      { id: "slide-1", title: "Enterprise Automation", subtitle: "Industrial Operations", description: "Bespoke digital architecture solutions engineered for global firms.", mediaUrl: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&q=80&w=800", mediaType: "image", buttonText: "Learn More", buttonUrl: "/services", order: 1, status: "Active" }
+    ],
+    videoSlider: [
+      { id: "vs-1", title: "Corporate Showreel 2026", videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-glitter-particles-swirling-in-water-43289-large.mp4", thumbnailUrl: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=600", description: "A cinematic review of completed high-tech system deployments.", redirectUrl: "/portfolio-gallery", order: 1, status: "Active" }
+    ],
+    reels: [
+      { id: "reel-1", title: "System UI Flow Showcase", videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-glitter-particles-swirling-in-water-43289-large.mp4", thumbnailUrl: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=600", category: "Behind the Scenes", duration: "0:30", order: 1, status: "Active" }
+    ],
+    shorts: [
+      { id: "short-1", title: "Vite Hot Reload Optimization", videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-glitter-particles-swirling-in-water-43289-large.mp4", thumbnailUrl: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=600", category: "Tech Hacks", order: 1, status: "Active" }
+    ],
+    longVideos: [
+      { id: "lv-1", title: "Full Scale React Admin Architecture Setup", description: "An in-depth tutorial on building decoupled dynamic database provider frameworks with local storage fallbacks.", videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-glitter-particles-swirling-in-water-43289-large.mp4", thumbnailUrl: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=600", category: "Architecture", duration: "18:45", order: 1, status: "Active" }
+    ],
+    featuredProjects: [
+      { id: "fp-1", title: "Zenvora Luxury CGI Campaign", description: "Bespoke 3D CGI campaign framework with interactive web-XR layouts.", thumbnailUrl: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=600", previewImageUrl: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=600", previewVideoUrl: "", redirectLink: "/portfolio-gallery", order: 1, status: "Active" }
+    ],
+    servicesPreview: [
+      { id: "sp-1", name: "Custom CGI Pipelines", iconUrl: "", description: "High-fidelity commercial 3D render pipelines customized for premium brands.", redirectLink: "/services", order: 1, status: "Active" },
+      { id: "sp-2", name: "Influencer Amplification", iconUrl: "", description: "Strategic distribution networks targeting qualified luxury leads.", redirectLink: "/services", order: 2, status: "Active" }
+    ],
+    clientLogos: [
+      { id: "cl-1", clientName: "Vogue Network", logoUrl: "https://images.unsplash.com/photo-1627163430005-502a0a2df335?auto=format&fit=crop&q=80&w=150", websiteLink: "https://vogue.in", order: 1, status: "Active" },
+      { id: "cl-2", clientName: "Gucci Luxury", logoUrl: "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&q=80&w=150", websiteLink: "https://gucci.com", order: 2, status: "Active" }
+    ],
+    statisticsCounters: [
+      { id: "st-1", number: "7", prefix: "", suffix: "+", label: "Years Active", icon: "History", order: 1, status: "Active" },
+      { id: "st-2", number: "45", prefix: "", suffix: "+", label: "Elite Brands", icon: "Users", order: 2, status: "Active" },
+      { id: "st-3", number: "15", prefix: "", suffix: "M+", label: "Campaign Reach", icon: "TrendingUp", order: 3, status: "Active" }
+    ],
+    whyChooseUs: [
+      { id: "wcu-1", title: "Aesthetic Perfection", description: "No placeholders. Every pixel complies with professional design ratios.", iconUrl: "Sparkles", order: 1, status: "Active" },
+      { id: "wcu-2", title: "Strategic Precision", description: "Our campaign metrics align directly with qualified client conversion rates.", iconUrl: "ShieldCheck", order: 2, status: "Active" }
+    ],
+    galleryPreview: [
+      { id: "gp-1", imageUrl: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=600", title: "CGI Bottle Render Model", category: "CGI CGI", order: 1, status: "Active" }
+    ],
+    homeCta: {
+      title: "TRANSFORM YOUR DIGITAL IDENTITY",
+      description: "Discuss a collaboration project with our high-end creator consulting agency.",
+      buttonText: "Schedule Consultation",
+      buttonUrl: "/faq-contact",
+      bgImageUrl: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=800",
+      status: "Active"
+    },
+    testimonialsPreview: [
+      { id: "tp-1", clientName: "Gabriella Rossi", designation: "Creative Director", company: "Gucci Milan", profileImageUrl: "", review: "TechMaster's cinematic visual storytelling elevated our commercial digital launches to art-film quality.", rating: 5, order: 1, status: "Active" }
+    ],
+    seo: {
+      metaTitle: "TechMaster Innovations | Luxury Creator Agency",
+      metaDescription: "Cinematic commercial content direction and premium digital branding.",
+      metaKeywords: "CGI, Production, Strategy, Marketing, High-End",
+      ogImage: ""
     }
   },
 
   // 17. ABOUT MANAGEMENT
   about: {
-    intro: "Akanksha Dua is a Mumbai-based creative director, public speaker, and luxury brand consultant specializing in HNW marketing and cinematic video production.",
-    story: "Starting her career in boutique marketing agencies, Akanksha recognized a critical gap in the creator economy: the lack of high-fidelity, cinema-grade storytelling for high-end brands. In 2021, she launched her independent consultancy, bridging the gap between social media virality and the strict heritage codes of elite global fashion, hospitality, and luxury automotive industries.",
-    passion: "Dedicated to restoring the artistic dignity of digital advertisements. By treating every campaign as a short art film, we elevate standard advertising into luxury storytelling.",
-    vision: "To cultivate a new era of creator-led agency campaigns that rival traditional print editorials and cinematic television spots in design quality.",
-    coreValues: [
-      { id: "cv-1", title: "Aesthetic Rigor", desc: "No placeholders. Every asset must satisfy elite golden ratio guidelines." },
-      { id: "cv-2", title: "Strategic Intent", desc: "Virality is vanity. Brand positioning and qualified HNW lead generation are our sole metrics." },
-      { id: "cv-3", title: "Exclusive Quality", desc: "Restricted client roster. We execute only 4 major collaborative launches per calendar year." }
+    introduction: {
+      founderName: "TechMaster",
+      designation: "Digital Luxury Consultant",
+      subtitle: "Bespoke digital brand experiences",
+      shortDescription: "TechMaster is a Mumbai-based creative director, public speaker, and luxury brand consultant specializing in HNW marketing.",
+      fullBiography: "Starting her career in boutique marketing agencies, TechMaster recognized a critical gap in the creator economy: the lack of high-fidelity, cinema-grade storytelling for high-end brands. In 2021, she launched her independent consultancy, bridging the gap between social media virality and the strict heritage codes of elite global fashion, hospitality, and luxury automotive industries.",
+      profileImageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150",
+      mobileImageUrl: "",
+      imageAltText: "TechMaster Portrait",
+      ctaButtonText: "Schedule Consultation",
+      ctaButtonLink: "/faq-contact",
+      openInNewTab: false,
+      buttonVisible: true,
+      status: "Active"
+    },
+    philosophy: {
+      title: "Philosophy",
+      description: "Design is not just style. It is the core operating interface of premium businesses.",
+      iconUrl: "Sparkles",
+      status: "Active"
+    },
+    mission: {
+      title: "Mission",
+      description: "To make high-fidelity, cinema-grade design concepts and interactive systems accessible to every modern enterprise.",
+      iconUrl: "Target",
+      status: "Active"
+    },
+    vision: {
+      title: "Vision",
+      description: "To cultivate a new era of creator-led agency campaigns that rival traditional print editorials and cinematic television spots in design quality.",
+      iconUrl: "Eye",
+      status: "Active"
+    },
+    story: {
+      title: "Our Story & Passion",
+      subtitle: "Crafting narratives that inspire",
+      description: "It all started with a simple belief: education should not be confined to boring lectures. We set out to create an ecosystem where code meets creativity. Our passion is fueled by the desire to ignite the same spark in others, turning complex algorithms into compelling visual narratives.\n\nWe live and breathe technology. Every late-night coding session, every bug fixed, and every project shipped is a testament to our unwavering dedication to the craft. Our story is just beginning, and our passion is what keeps us moving forward.",
+      imageUrl: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=800&q=80",
+      status: "Active"
+    },
+    highlights: [
+      { id: "hl-1", number: "8", prefix: "", suffix: "+", label: "Years Experience", order: 1, status: "Active" },
+      { id: "hl-2", number: "45", prefix: "", suffix: "+", label: "Premium Brands", order: 2, status: "Active" },
+      { id: "hl-3", number: "12", prefix: "", suffix: "M+", label: "Campaign Reach", order: 3, status: "Active" }
     ],
-    background: "Master's Degree in Luxury Brand Management, London College of Fashion. Bachelors in Fine Arts.",
     achievements: [
-      "Voted Top 10 Luxury Marketing Pioneers by Forbes 2025",
-      "Keynote Speaker at Luxury Digital Summit Paris 2025",
-      "Collaborator of the Year Award - Lifestyle Creators 2026"
+      { id: "ach-1", title: "Developer of the Year", description: "Awarded at Global Tech Summit for innovations in modular interface development.", year: "2021", iconUrl: "🏆", order: 1, status: "Active" },
+      { id: "ach-2", title: "Best Educational Platform", description: "Recognized for pioneers in interactive video syllabus course designs.", year: "2023", iconUrl: "🥇", order: 2, status: "Active" }
+    ],
+    awards: [
+      { id: "aw-1", name: "Best Educational Platform", organization: "EdTech Innovation Awards", year: "2023", description: "Recognized for pioneers in interactive video syllabus course designs.", imageUrl: "🥇", order: 1, status: "Active" }
     ],
     experience: [
-      { year: "2024-Present", role: "Creative Director", company: "Zenvora Luxury Consulting" },
-      { year: "2021-2024", role: "Principal Brand Advisor", company: "Prestige Lifestyle Agency" },
-      { year: "2019-2021", role: "Creative lead", company: "Conde Nast Luxury Group" }
+      { id: "exp-1", logoUrl: "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&q=80&w=150", companyName: "TechGiants", designation: "Senior Architect", location: "Mumbai, India", startDate: "2018-06-01", endDate: "2022-09-30", description: "Spearheaded the development of scalable microservices architectures.", order: 1, status: "Active" }
     ],
-    futureGoals: [
-      "Launch specialized luxury academy in Q1 2027",
-      "Expand 3D CGI campaign division with interactive web-XR layouts"
-    ]
+    seo: {
+      metaTitle: "About TechMaster | Premium Creator CMS",
+      metaDescription: "Professional biography and system portfolio details.",
+      metaKeywords: "Luxury, Strategy, Creative",
+      ogImageUrl: ""
+    },
+    sectionSettings: {
+      introduction: { order: 1, status: "Active" },
+      philosophy: { order: 2, status: "Active" },
+      mission: { order: 3, status: "Active" },
+      vision: { order: 4, status: "Active" },
+      story: { order: 5, status: "Active" },
+      highlights: { order: 6, status: "Active" },
+      achievements: { order: 7, status: "Active" },
+      awards: { order: 8, status: "Active" },
+      experience: { order: 9, status: "Active" },
+      seo: { order: 10, status: "Active" }
+    }
   },
 
   // 18. FOUNDER JOURNEY MANAGEMENT
-  founderJourney: [
-    {
-      id: "fj-1",
-      milestone: "Childhood & Early Influences",
-      year: "2000-2010",
-      description: "Growing up in a family of art dealers, Akanksha developed a deep appreciation for classical art, symmetry, and craftsmanship at an early age.",
-      details: "Spent hours cataloging fine paintings and studying structural balance.",
-      category: "Childhood",
-      isActive: true
+  founderJourney: {
+    hero: {
+      badgeText: "FOUNDER CHRONICLES",
+      heading: "The Journey of",
+      highlightWord: "Tech Master",
+      description: "Tracing the evolution of Aman's personal brand from writing basic pointers on a whiteboard in 2015 to building global tech learning ecosystems.",
+      scrollIndicatorText: "Explore timeline",
+      scrollIndicatorVisible: true,
+      status: "Active"
     },
-    {
-      id: "fj-2",
-      milestone: "The London Fashion Era",
-      year: "2018",
-      description: "Completed graduate studies in London, gaining deep academic and practical grounding in luxury brand heritage and HNW consumer behavior.",
-      details: "Worked part-time as a social coordinator for boutique design houses in Mayfair.",
-      category: "Career Beginning",
-      isActive: true
+    timelineSettings: {
+      heading: "Founder Journey Timeline",
+      description: "Chronological narrative line mapping career beginning, years, milestones, and custom graphics.",
+      lineColor: "rgba(255,255,255,0.1)",
+      activeLineColor: "#D4AF37",
+      status: "Active"
     },
-    {
-      id: "fj-3",
-      milestone: "First Armani Partnership",
-      year: "2021",
-      description: "Signed a breakthrough partnership with Armani Beauty, introducing cinematic short-form reels that recorded over 4M organic views.",
-      details: "This campaign established the viability of cinema-pacing on social channels.",
-      category: "First Brand Collaboration",
-      isActive: true
+    milestones: [
+      { id: "fj-1", year: "2015", subtitle: "Whiteboard Pointers", title: "Childhood & Early Influences", description: "Early fascination with computers, dismantling old radios and writing basic HTML on a Windows 95 machine.", category: "Childhood", order: 1, status: "Active" },
+      { id: "fj-2", year: "2018", subtitle: "Corporate Path", title: "Career Beginning", description: "Started as a junior developer in a local agency, learning the ropes of production-level code and client management.", category: "Career Beginning", order: 2, status: "Active" },
+      { id: "fj-3", year: "2021", subtitle: "First Brand Collab", title: "Armani Beauty Campaign", description: "Signed a breakthrough partnership with Armani Beauty, introducing cinematic short-form reels that recorded over 4M organic views.", category: "Brand Collaboration", order: 3, status: "Active" }
+    ],
+    highlights: [
+      { id: "hl-1", icon: "👶", title: "Childhood", description: "Early fascination with computers, dismantling old radios and writing basic HTML on a Windows 95 machine.", order: 1, status: "Active" },
+      { id: "hl-2", icon: "🚀", title: "Career Beginning", description: "Started as a junior developer in a local agency, learning the ropes of production-level code and client management.", order: 2, status: "Active" },
+      { id: "hl-3", icon: "🤝", title: "First Brand Collab", description: "Partnering with a major tech hardware brand to produce a series of educational videos, marking the first sponsorship.", order: 3, status: "Active" },
+      { id: "hl-4", icon: "📱", title: "Social Media Journey", description: "From 0 to 2.5 Million subscribers, navigating algorithm changes, burnout, and discovering a unique educational voice.", order: 4, status: "Active" }
+    ],
+    categories: [
+      { id: "cat-1", title: "Childhood", description: "Early childhood memories, learning experiences, and initial technical hobbies.", order: 1, status: "Active" },
+      { id: "cat-2", title: "Career Beginning", description: "Corporate roles, first jobs, and coding benchmarks.", order: 2, status: "Active" },
+      { id: "cat-3", title: "Brand Collaboration", description: "Dynamic sponsorship projects and creative campaigns.", order: 3, status: "Active" }
+    ],
+    futureVision: {
+      heading: "The Horizon of Immersive Media",
+      subtitle: "Driving dynamic visual architectures",
+      description: "Driving dynamic visual architectures across global operations networks.",
+      status: "Active"
     },
-    {
-      id: "fj-4",
-      milestone: "Founding Zenvora Consulting",
-      year: "2024",
-      description: "Launched an independent agency focusing exclusively on premium digital brand positioning.",
-      details: "Assembled a dedicated team of videographers, 3D artists, and copywriting experts.",
-      category: "Major Milestones",
-      isActive: true
+    statistics: [
+      { id: "stat-1", number: "2.5M+", prefix: "", suffix: "", title: "YouTube Subscribers", order: 1, status: "Active" },
+      { id: "stat-2", number: "150+", prefix: "", suffix: "", title: "Tech Tutorials Published", order: 2, status: "Active" }
+    ],
+    seo: {
+      metaTitle: "TechMaster Innovations | Founder Journey",
+      metaDescription: "Follow Aman's professional timeline, achievements, and statistics.",
+      metaKeywords: "Journey, Timeline, GSAP, Founder",
+      ogImageUrl: ""
     },
-    {
-      id: "fj-5",
-      milestone: "The 3D Web Transition",
-      year: "2026",
-      description: "Migrated the agency's strategy towards immersive 3D, Web-GL, and spatial layouts, pioneering virtual luxury showrooms.",
-      details: "Invested heavily in in-house Web-XR capabilities.",
-      category: "Future Vision",
-      isActive: true
+    sectionSettings: {
+      hero: { order: 1, status: "Active" },
+      timelineSettings: { order: 2, status: "Active" },
+      milestones: { order: 3, status: "Active" },
+      highlights: { order: 4, status: "Active" },
+      categories: { order: 5, status: "Active" },
+      futureVision: { order: 6, status: "Active" },
+      statistics: { order: 7, status: "Active" },
+      seo: { order: 8, status: "Active" }
     }
-  ],
+  },
 
   // 19. MISSION & VISION
   missionVision: {
-    brandPhilosophy: {
-      headline: "Artistry as Strategy",
-      content: "We believe digital campaigns should be as enduring as the physical products they represent. By treating social assets as cinematic collectibles, we build lasting brand equity rather than fleeting viral spikes."
+    hero: {
+      smallLabel: "OUR NORTH STAR",
+      headline: "Democratizing",
+      highlightWord: "Tech Literacy",
+      description: "We believe high-quality engineering curricula shouldn't be locked behind expensive student debts. Aman is building the tools to make code accessible to every curious mind on earth.",
+      backgroundImage: "",
+      backgroundVideo: "",
+      button1Text: "Explore Courses",
+      button1Link: "/courses",
+      button2Text: "Join Community",
+      button2Link: "/community",
+      scrollIndicatorVisible: true,
+      status: "Active"
     },
-    communityVision: {
-      headline: "Elevating the Creator Economy",
-      content: "Fostering an ecosystem where creative developers and digital filmmakers receive standard agency representation and produce high-fidelity assets for luxury brands."
+    mission: {
+      heading: "To inspire, educate, and place the next million developers.",
+      subHeading: "THE MISSION STATEMENT",
+      description: "Our target is to break down complex system design systems, database architectures, and compiler dynamics into engaging, cinematic formats.",
+      leftBorderColor: "#D4AF37",
+      missionImage: "",
+      missionIcon: "Target",
+      buttonText: "Read Story",
+      buttonUrl: "/story",
+      glassEffect: true,
+      status: "Active"
     },
-    creatorMission: {
-      headline: "Bridging Heritage and Technology",
-      content: "Applying age-old guidelines of luxury typography, grids, and premium materials to modern digital canvases like React, 3D WebGL, and Spatial UI."
+    vision: {
+      heading: "Vision 2030: Bridging the global developer deficit.",
+      subHeading: "THE FUTURE VISION",
+      description: "Technology evolves at a rapid pace, yet university syllabi remain outdated. We are constructing an open, adaptive, cloud-native learning playground.",
+      visionImage: "",
+      visionIcon: "Eye",
+      accentColor: "#00E5FF",
+      buttonText: "Learn More",
+      buttonUrl: "/about",
+      status: "Active"
     },
+    coreValues: [
+      { id: "cv-1", icon: "Compass", title: "Vision 2030: Democratizing Code", description: "Our core goal is to reach 10 million students globally, offering verified technical education pathways at zero subscription costs.", accentColor: "#D4AF37", order: 1, status: "Active" },
+      { id: "cv-2", icon: "Eye", title: "Proof of Work Focus", description: "Moving tech candidates away from standard multiple-choice resumes and towards visible, deployed open-source contributions.", accentColor: "#00E5FF", order: 2, status: "Active" }
+    ],
+    brandPillars: [
+      { id: "bp-1", title: "Brand Philosophy", subtitle: "Storytelling as strategy", description: "Cinematic narrative lessons detailing system design and advanced coding parameters.", icon: "Compass", borderColor: "#D4AF37", hoverColor: "#D4AF37", order: 1, status: "Active" },
+      { id: "bp-2", title: "Community Vision", subtitle: "Fostering open-source network", description: "Global developers collaborating, peer reviewing code, and organizing local bootcamps.", icon: "Users", borderColor: "#aa3bff", hoverColor: "#aa3bff", order: 2, status: "Active" }
+    ],
     roadmap: [
-      { id: "rm-1", quarter: "Q3 2026", goal: "Launch 3D Brand Collaborations Gallery with WebXR previews.", status: "In Progress" },
-      { id: "rm-2", quarter: "Q4 2026", goal: "Establish remote European production division in Milan.", status: "Planning" },
-      { id: "rm-3", quarter: "Q2 2027", goal: "Inaugural physical Zenvora Luxury Art Exhibition.", status: "Proposed" }
-    ]
+      { id: "rm-1", quarter: "Q3", year: "2026", title: "WebXR Platform Launch", goal: "Launch 3D Brand Collaborations Gallery with WebXR previews.", description: "Integrate initial interactive WebXR portfolios.", status: "In Progress", accentColor: "#00E5FF", order: 1 },
+      { id: "rm-2", quarter: "Q4", year: "2026", title: " Milan Office Launch", goal: "Establish remote European production division in Milan.", description: "Establish content production and localized marketing campaigns.", status: "Planning", accentColor: "#D4AF37", order: 2 }
+    ],
+    cta: {
+      heading: "Ready to Build Your Engineering Career?",
+      description: "Join thousands of developers in our interactive sandbox playgrounds and master production-ready code.",
+      primaryButtonText: "Get Started Free",
+      primaryButtonLink: "/signup",
+      secondaryButtonText: "Talk to Advisor",
+      secondaryButtonLink: "/contact",
+      backgroundGradient: "linear-gradient(to right, #000, #111)",
+      status: "Active"
+    },
+    seo: {
+      metaTitle: "Mission & Vision | TechMaster",
+      metaDescription: "Read Aman's core mission statement, values, and strategic multi-year development roadmap.",
+      metaKeywords: "Mission, Vision, Roadmap, Pillars",
+      ogImageUrl: ""
+    },
+    sectionSettings: {
+      hero: { order: 1, status: "Active" },
+      mission: { order: 2, status: "Active" },
+      vision: { order: 3, status: "Active" },
+      coreValues: { order: 4, status: "Active" },
+      brandPillars: { order: 5, status: "Active" },
+      roadmap: { order: 6, status: "Active" },
+      cta: { order: 7, status: "Active" },
+      seo: { order: 8, status: "Active" }
+    }
   },
 
   // 20. WEBSITE ANALYTICS
@@ -976,21 +1644,21 @@ export const initialData = {
   // 21. WEBSITE SETTINGS
   settings: {
     brandLogoUrl: "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&q=80&w=100",
-    brandName: "AKANKSHA DUA",
+    brandName: "TECHMASTER",
     officeAddress: "Zenvora Creative Studio, Floor 14, Nariman Point, Mumbai 400021",
-    emailGeneral: "hello@akankshadua.com",
-    emailBooking: "booking@akankshadua.com",
+    emailGeneral: "hello@techmaster.com",
+    emailBooking: "booking@techmaster.com",
     whatsappNumber: "+91 99999 11111",
     socialLinks: {
-      instagram: "https://instagram.com/akankshadua",
-      youtube: "https://youtube.com/c/akankshadua",
-      linkedin: "https://linkedin.com/in/akankshadua",
-      pinterest: "https://pinterest.com/akankshadua"
+      instagram: "https://instagram.com/techmaster",
+      youtube: "https://youtube.com/c/techmaster",
+      linkedin: "https://linkedin.com/in/techmaster",
+      pinterest: "https://pinterest.com/techmaster"
     },
     maintenanceMode: false,
     googleAnalyticsId: "G-LUXURY3D2026",
     smtpHost: "smtp.mailgun.org",
-    footerText: "© 2026 AKANKSHA DUA. Crafted with Zenvora 3D engine. All Rights Reserved."
+    footerText: "© 2026 TECHMASTER. Crafted with Zenvora 3D engine. All Rights Reserved."
   },
 
   // 22. FAQS (Auxiliary section referenced in Contact page)
@@ -1009,5 +1677,222 @@ export const initialData = {
       category: "Services",
       isActive: true
     }
-  ]
+  ],
+  whatWeDo: {
+    hero: {
+      smallBadge: "CORE ACTIVITIES",
+      headline: "What We Do to",
+      highlightWord: "Reshape Learning",
+      description: "We build content, platforms, keynotes, and campaigns to bridge the gap between classroom syntax and global engineering workspaces.",
+      glowEnabled: true,
+      status: "Active"
+    },
+    operations: [
+      { id: "op-1", icon: "Video", title: "YouTube Production", subtitle: "Cinematic Coding Breakdowns", description: "We script, record, and edit deep-dive developer tutorials that run like cinematic stories. Reaching over 2.5 million subscribers with weekly guides.", accent: "#D4AF37", order: 1, status: "Active" },
+      { id: "op-2", icon: "Code", title: "Interactive Syllabus Design", subtitle: "Online MasterClasses", description: "Drafting production-level courses that focus on Docker pipelines, testing arrays, and backend scale, complete with live browser containers.", accent: "#00E5FF", order: 2, status: "Active" }
+    ],
+    servicesList: [
+      { id: "sl-1", tag: "Content Creation", order: 1, status: "Active" },
+      { id: "sl-2", tag: "Influencer Marketing", order: 2, status: "Active" },
+      { id: "sl-3", tag: "Brand Promotions", order: 3, status: "Active" }
+    ],
+    quoteBanner: {
+      quoteText: "Education is not the learning of facts, but the training of the mind to think.",
+      authorName: "Aman (Tech Master)",
+      status: "Active"
+    },
+    seo: {
+      metaTitle: "What We Do | TechMaster",
+      metaDescription: "Explore our core activities, YouTube production tutorials, masterclasses, and services.",
+      metaKeywords: "Services, YouTube, Courses, Keynotes",
+      ogImageUrl: ""
+    },
+    sectionSettings: {
+      hero: { order: 1, status: "Active" },
+      operations: { order: 2, status: "Active" },
+      servicesList: { order: 3, status: "Active" },
+      quoteBanner: { order: 4, status: "Active" },
+      seo: { order: 5, status: "Active" }
+    }
+  },
+  servicesPage: {
+    hero: {
+      smallBadge: "CORE PORTALS",
+      headline: "Services, Courses &",
+      highlightWord: "Keynote Bookings",
+      description: "Explore Aman's developer training tracks, speaking keynote requests, collaborative student hackathons, and brand sponsorships.",
+      glowEnabled: true,
+      status: "Active"
+    },
+    mainServices: [
+      { id: "ms-1", title: "YouTube Production", tagline: "Cinematic Coding Breakdowns", description: "We script, record, and edit deep-dive developer tutorials that run like cinematic stories. Reaching over 2.5 million subscribers with weekly guides.", icon: "Cpu", accentColor: "#D4AF37", features: ["Weekly content guides", "Cinematic pacing", "Target placements"], order: 1, status: "Active" },
+      { id: "ms-2", title: "Interactive Syllabus Design", tagline: "Online MasterClasses", description: "Drafting production-level courses that focus on Docker pipelines, testing arrays, and backend scale, complete with live browser containers.", icon: "Layers", accentColor: "#00E5FF", features: ["Docker pipelines", "Testing arrays", "Backend scale"], order: 2, status: "Active" }
+    ],
+    advancedServices: [
+      { id: "as-1", title: "Brand Promotion", overview: "Our Brand Promotion service is designed to elevate your brand's presence in the competitive tech landscape. We combine cinematic production with deep industry insights to deliver unparalleled results.", benefits: ["Targeted audience reach and engagement", "Premium cinematic production quality", "Data-driven strategic approach"], process: ["Discovery & Strategy alignment", "Creative Production & Execution", "Review Analytics & Optimization"], gallery: [], cta: "Inquire Now", order: 1, status: "Active" }
+    ],
+    categories: [
+      { id: "cat-1", title: "Branding", color: "#D4AF37", order: 1, status: "Active" },
+      { id: "cat-2", title: "Design", color: "#00E5FF", order: 2, status: "Active" }
+    ],
+    seo: {
+      metaTitle: "Services | TechMaster",
+      metaDescription: "Explore our main accordion services, advanced services tabs, and categories.",
+      metaKeywords: "Services, Branding, Courses, Hackathons",
+      ogImageUrl: ""
+    },
+    sectionSettings: {
+      hero: { order: 1, status: "Active" },
+      mainServices: { order: 2, status: "Active" },
+      advancedServices: { order: 3, status: "Active" },
+      categories: { order: 4, status: "Active" },
+      seo: { order: 5, status: "Active" }
+    }
+  },
+  campaignsPage: {
+    hero: {
+      smallBadge: "INITIATIVE CAMPAIGNS",
+      headline: "Empowerment Drives &",
+      highlightWord: "Coding Challenges",
+      description: "Review our campaigns designed to bring cloud services, laptops, coding bootcamps, and career mentoring to students globally.",
+      glowEnabled: true,
+      status: "Active"
+    },
+    campaignsList: [
+      { id: "cl-1", title: "AWS Educate Drive", sponsor: "Amazon Web Services", reach: "25,000+", coverImage: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&q=80", description: "By gamifying the learning process, we helped AWS register over 25,000 new student accounts in a single month.", highlights: ["Gamified Learning", "Cloud Credits", "Certification"], accentColor: "#D4AF37", order: 1, status: "Active" },
+      { id: "cl-2", title: "MongoDB Atlas Hackathon", sponsor: "MongoDB", reach: "10,000+", coverImage: "https://images.unsplash.com/photo-1618220179428-22790b461013?auto=format&fit=crop&q=80", description: "A virtual hackathon driving adoption for MongoDB Atlas serverless infrastructure.", highlights: ["Database Architecture", "Serverless scaling", "Open Source DB"], accentColor: "#00E5FF", order: 2, status: "Active" }
+    ],
+    lifecycle: [
+      { id: "lc-1", title: "1. Campaign Planning", description: "We meticulously outline timelines, allocate resources, and define key performance indicators to ensure every initiative starts with a rock-solid foundation.", order: 1, status: "Active" },
+      { id: "lc-2", title: "2. Campaign Strategy", description: "Crafting narrative arcs and selecting the right digital channels to guarantee maximum reach and resonance with the targeted developer demographic.", order: 2, status: "Active" },
+      { id: "lc-3", title: "3. Campaign Execution", description: "From high-end video production to live hackathon moderation, our team handles the ground-level execution to bring the strategic vision to life flawlessly.", order: 3, status: "Active" },
+      { id: "lc-4", title: "4. Analytics", description: "Real-time monitoring of engagement metrics, audience retention, and click-through rates allows us to pivot and optimize the campaign mid-flight.", order: 4, status: "Active" },
+      { id: "lc-5", title: "5. Results", description: "Delivering comprehensive post-campaign reports detailing ROI, brand lift, and total community impact against our initial benchmarks. We believe in absolute transparency and quantifiable outcomes.", order: 5, status: "Active" }
+    ],
+    successStories: [
+      { id: "ss-1", title: "AWS Educate Drive", description: "By gamifying the learning process, we helped AWS register over 25,000 new student accounts in a single month. The campaign significantly lowered their standard customer acquisition cost while providing immense value to learners.", linkText: "Read Full Story", accentColor: "#D4AF37", order: 1, status: "Active" },
+      { id: "ss-2", title: "MongoDB Hackathon", description: "A weekend-long virtual event that produced 500+ open-source database implementations. The campaign established MongoDB as the default backend choice for a new generation of full-stack bootcamps.", linkText: "Read Full Story", accentColor: "#00E5FF", order: 2, status: "Active" }
+    ],
+    seo: {
+      metaTitle: "Initiative Campaigns | TechMaster",
+      metaDescription: "Empowerment Drives & Coding Challenges.",
+      metaKeywords: "Campaigns, AWS, Hackathons",
+      ogImageUrl: ""
+    }
+  },
+  launchesPage: {
+    hero: {
+      smallBadge: "SOFTWARE RELEASES",
+      headline: "Product Launches &",
+      highlightWord: "Tech Innovations",
+      description: "We construct platforms, terminal tools, and architectural sandbox spaces to help learners visual and configure engineering problems.",
+      glowEnabled: true,
+      status: "Active"
+    },
+    products: [
+      { id: "lp-1", title: "MasterClass App v2", tagline: "Gamified Interactive Code Learning", description: "Our core dashboard offering browser-based shell access, sandboxed docker execution, and step-by-step challenges covering system architectures.", status: "Active Launch", accentColor: "#D4AF37", icon: "Laptop", order: 1 },
+      { id: "lp-2", title: "DevEnv CLI utility", tagline: "Speed Up Local Node Configuration", description: "A fast terminal CLI utility that builds customized, performant TS, Vite, and tailwind stacks in seconds, downloaded 80k+ times.", status: "Open Source", accentColor: "#00E5FF", icon: "Terminal", order: 2 },
+      { id: "lp-3", title: "System Sandbox Hub", tagline: "Interactive AWS & Docker diagrams", description: "A digital workspace where students can construct multi-tier architectures visually, export them, and trigger test loads.", status: "Beta Testing", accentColor: "#aa3bff", icon: "Layers", order: 3 }
+    ],
+    featureVideo: {
+      smallBadge: "LATEST LAUNCH VIDEO",
+      headline: "MasterClass v2 Platform Launch Walkthrough",
+      description: "Watch Aman demonstrate the sandboxed docker containers, web terminals, and the multiplayer live coding rooms that make learning code feel like a cooperative MMO game.",
+      trailerBtnText: "Play Trailer",
+      notesBtnText: "View Launch Notes",
+      videoUrl: "",
+      thumbnailUrl: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=400&q=80",
+      status: "Active"
+    },
+    initiatives: [
+      { id: "li-1", title: "Launch Events", description: "Hosting high-energy digital and physical events to unveil new platforms, creating massive day-one adoption and community buzz.", order: 1, status: "Active" },
+      { id: "li-2", title: "Product Promotions", description: "Strategic marketing pushes that position developer tools directly in front of their ideal user base through trusted channels.", order: 2, status: "Active" },
+      { id: "li-3", title: "Brand Launches", description: "End-to-end support for introducing new technology brands to the market, establishing authority and developer trust instantly.", order: 3, status: "Active" },
+      { id: "li-4", title: "Campaign Videos", description: "Cinematic, deep-dive promotional videos that explain complex software architectures in a visually stunning and digestible format.", order: 4, status: "Active" },
+      { id: "li-5", title: "Results", description: "We measure our success by tangible impact: tens of thousands of active accounts created, millions of impressions, and sustained engagement long after the initial launch phase ends.", order: 5, status: "Active" }
+    ],
+    seo: {
+      metaTitle: "Product Launches | TechMaster",
+      metaDescription: "Explore our latest software releases and platform updates.",
+      metaKeywords: "Launches, Apps, Tools",
+      ogImageUrl: ""
+    }
+  },
+  eventsPage: {
+    heroSettings: {
+      smallBadge: "PUBLIC ENGAGEMENTS",
+      headline: "Keynote Speaking &",
+      highlightWord: "Live Coding Seminars",
+      description: "Aman shares developer insights, soft-skills blueprints, and live systems architecture demonstrations on global stages.",
+      glowEnabled: true,
+      status: "Active"
+    },
+    masterEventsList: [
+      { 
+        id: "ev-1", 
+        title: "Developer Summit 2026", 
+        type: "Keynote",
+        date: "24 Nov 2026", 
+        venue: "Moscone Center, SF", 
+        location: "San Francisco, USA", 
+        attendance: "5,000+", 
+        description: "Opening keynote on the future of containerized cloud architecture.",
+        media: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80", 
+        accentColor: "#D4AF37", 
+        status: "Upcoming", 
+        featured: true 
+      },
+      { 
+        id: "ev-2", 
+        title: "Web3 Hackathon", 
+        type: "Workshop",
+        date: "12 Dec 2026", 
+        venue: "Virtual Platform", 
+        location: "Global", 
+        attendance: "10,000+", 
+        description: "Live interactive coding session on smart contract deployment.",
+        media: "https://images.unsplash.com/photo-1515169067868-5387ec356754?auto=format&fit=crop&q=80", 
+        accentColor: "#00E5FF", 
+        status: "Upcoming", 
+        featured: true 
+      }
+    ],
+    engagementTypes: [
+      { id: "et-1", title: "Event Hosting", order: 1, status: "Active" },
+      { id: "et-2", title: "Guest Appearance", order: 2, status: "Active" },
+      { id: "et-3", title: "Corporate Events", order: 3, status: "Active" },
+      { id: "et-4", title: "Product Events", order: 4, status: "Active" },
+      { id: "et-5", title: "Meetups", order: 5, status: "Active" },
+      { id: "et-6", title: "Workshops", order: 6, status: "Active" },
+      { id: "et-7", title: "Conferences", order: 7, status: "Active" }
+    ],
+    mediaArchive: [
+      { id: "ma-1", url: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80", title: "Event Gallery 1", category: "Conference", status: "Active" },
+      { id: "ma-2", url: "https://images.unsplash.com/photo-1515169067868-5387ec356754?auto=format&fit=crop&w=600&q=80", title: "Event Gallery 2", category: "Workshop", status: "Active" }
+    ],
+    videoHighlights: {
+      thumbnail: "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=600&q=80",
+      videoUrl: "https://youtube.com/embed/dQw4w9WgXcQ",
+      recapBadge: "RECAP",
+      title: "Mainstage 2023",
+      status: "Active"
+    },
+    bookingCTA: {
+      smallBadge: "SPEAKER BOOKINGS",
+      headline: "Bring Aman to",
+      highlightWord: "Your Event",
+      description: "Aman keynote schedules fill up rapidly. Bookings are open for university developer panels, virtual technical summits, DevFests, or corporate software consulting cycles.",
+      awardText: "Full Press Kit and AV Rider available upon approval.",
+      status: "Active"
+    },
+    bookingRequests: [
+      { id: "br-1", name: "Sarah Jenkins", email: "sarah@techcorp.com", organization: "TechCorp", eventName: "Annual DevFest", budget: "$10k - $20k", date: "2026-10-15", status: "New" }
+    ],
+    workshops: [
+      { id: "ws-1", title: "React Masterclass", instructor: "Aman", date: "15 Aug 2026", venue: "Delhi", seats: 50, price: "₹5000", status: "Upcoming" }
+    ],
+    conferences: [
+      { id: "cf-1", title: "Tech Summit 2026", date: "12 Aug 2026", location: "Mumbai", guests: 250, status: "Upcoming" }
+    ]
+  }
 };

@@ -42,7 +42,7 @@ export const GenericCRUD = ({ collection, title, schema }) => {
   const filterCategories = categoryField ? categoryField.options : [];
 
   // Filtering Logic
-  const filteredList = list.filter(item => {
+  const filteredList = list.filter(item => {  
     // Search match
     const searchString = schema.searchFields
       .map(f => (item[f] || '').toString().toLowerCase())

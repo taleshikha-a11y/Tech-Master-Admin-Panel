@@ -1,338 +1,458 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
+import { useMediaManager } from '../../context/MediaContext';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Switch } from '../../components/ui/Switch';
-import { Badge } from '../../components/ui/Badge';
 import { Input } from '../../components/ui/Input';
 import { 
-  Sparkles, Home, Layers, ShieldCheck, Plus,
-  BarChart, Mail, Phone, ChevronDown, ChevronRight,
-  Briefcase, History, Eye, Award, Edit3, Trash2, 
-  Copy, Image, RefreshCw, Save, ArrowUp, ArrowDown, 
-  ExternalLink, Handshake, X, UploadCloud, Scissors
+  Sparkles, Home, Layers, Plus, 
+  BarChart, Mail, ChevronDown, ChevronRight,
+  Briefcase, History, Edit3, Trash2, 
+  RefreshCw, Save, ArrowUp, ArrowDown, 
+  UploadCloud, AlertCircle, Play, Film, Video, Handshake,
+  Calendar, Target, Star, Download, Search
 } from 'lucide-react';
 
 export const Homepage = () => {
   const { db, updateSection } = useDatabase();
   const homepageData = db?.homepage || {};
 
-  // --- INLINE EXPANSION STATES (No Page Navigation, No Modals) ---
-  const [activeSection, setActiveSection] = useState('hero'); 
-  const [showGlobalAddForm, setShowGlobalAddForm] = useState(false);
-  const [inlineEditSectionId, setInlineEditSectionId] = useState(null);
-  const [inlineUploadSectionId, setInlineUploadSectionId] = useState(null);
-  const [inlineCropActive, setInlineCropActive] = useState(false);
-  const [showInlineHistory, setShowInlineHistory] = useState(false);
-  const [simulatedLivePreview, setSimulatedLivePreview] = useState(false);
+  const [expandedCards, setExpandedCards] = useState({
+    hero: true, stats: false, coreValues: false, events: false, newsletter: false,
+    heroSlides: false, videoSlider: false, reels: false, shorts: false, longVideos: false,
+    projects: false, services: false, logos: false, whyChooseUs: false, gallery: false, customSections: true
+  });
 
-  // Dynamic States for Forms
-  const [newSection, setNewSection] = useState({ type: 'Hero Section', name: '', order: '1' });
-  const [editFormData, setEditFormData] = useState({});
-
-  const toggleSection = (section) => {
-    setActiveSection(activeSection === section ? '' : section);
-    setInlineEditSectionId(null);
-    setInlineUploadSectionId(null);
+  const toggleCard = (cardId) => {
+    setExpandedCards(prev => ({ ...prev, [cardId]: !prev[cardId] }));
   };
 
-  // Trigger Inline Section Editor
-  const triggerInlineEdit = (secId) => {
-    setInlineUploadSectionId(null);
-    if (inlineEditSectionId === secId) {
-      setInlineEditSectionId(null);
-    } else {
-      setInlineEditSectionId(secId);
-      setEditFormData(homepageData[secId] || {
-        title: 'REDEFINING DIGITAL LUXURY',
-        subtitle: 'Bespoke Brand Strategy & Design',
-        description: 'Bespoke execution metrics matching golden ratios.',
-        ctaText: 'Explore Space',
-        ctaLink: '/portfolio',
-        address: 'Indore, MP, India',
-        email: 'booking@akankshadua.com',
-        phone: '+91 99999 11111'
-      });
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const [heroForm, setHeroForm] = useState(homepageData?.hero || {});
+  const [newsletterForm, setNewsletterForm] = useState(homepageData?.newsletter || {});
+  const [eventsForm, setEventsForm] = useState(homepageData?.events || {});
+  const [subscriberSearch, setSubscriberSearch] = useState('');
+
+  const [activeEditorSection, setActiveEditorSection] = useState(null);
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [draftItem, setDraftItem] = useState({});
+
+  const [uploadingField, setUploadingField] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const { openMediaManager } = useMediaManager();
+  const simulateMediaUpload = (targetKey, isObjectForm = false, objectSetter = null) => {
+    openMediaManager({
+      onSelect: (url) => {
+        if (activeEditorSection) {
+          setDraftItem(prev => ({ ...prev, [targetKey]: url }));
+        } else {
+          if (targetKey in heroForm || ['desktopImageUrl', 'mobileImageUrl', 'videoUrl'].includes(targetKey)) setHeroForm(prev => ({ ...prev, [targetKey]: url }));
+          if (targetKey in newsletterForm || ['backgroundImage', 'backgroundVideo', 'leftIllustration', 'rightIllustration'].includes(targetKey)) setNewsletterForm(prev => ({ ...prev, [targetKey]: url }));
+        }
+      }
+    });
+  };
+
+
+  const handleSingleSave = (sectionKey, data) => {
+    updateSection('homepage', { [sectionKey]: data });
+    showToast(`${sectionKey.toUpperCase()} saved successfully.`);
+  };
+
+  const handleExportCSV = () => {
+    const subscribers = homepageData?.newsletter?.subscribers || [];
+    if (subscribers.length === 0) return showToast("No subscribers to export", "error");
+    
+    const headers = ["Name,Email,Subscription Date,Status"];
+    const rows = subscribers.map(s => `${s.name},${s.email},${s.subscriptionDate},${s.status}`);
+    const csvContent = "data:text/csv;charset=utf-8," + headers.concat(rows).join("\n");
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "subscribers.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("CSV Exported Successfully.");
+  };
+
+  const handleDeleteSubscriber = (id) => {
+    if(window.confirm("Delete this subscriber?")) {
+      const nextSubs = (homepageData?.newsletter?.subscribers || []).filter(s => s.id !== id);
+      updateSection('homepage', { newsletter: { ...homepageData.newsletter, subscribers: nextSubs }});
+      showToast("Subscriber deleted.");
+    }
+  };
+  
+  const handleBulkDeleteSubscribers = () => {
+    if(window.confirm("Delete ALL subscribers? This cannot be undone.")) {
+      updateSection('homepage', { newsletter: { ...homepageData.newsletter, subscribers: [] }});
+      showToast("Bulk delete completed.");
     }
   };
 
-  // Trigger Inline Asset Vault
-  const triggerInlineUpload = (secId) => {
-    setInlineEditSectionId(null);
-    setInlineCropActive(false);
-    setInlineUploadSectionId(inlineUploadSectionId === secId ? null : secId);
-  };
+  const renderListManager = ({ sectionKey, fields = [], displayColumns = [], innerListKey = null }) => {
+    let listData = [];
+    if (innerListKey) {
+       listData = homepageData[sectionKey]?.[innerListKey] || [];
+    } else {
+       listData = homepageData[sectionKey] || [];
+    }
+    
+    if (!Array.isArray(listData)) {
+      listData = Object.values(listData || {});
+    }
 
-  const saveInlineForm = (secId) => {
-    updateSection('homepage', { [secId]: editFormData });
-    setInlineEditSectionId(null);
-    alert(`⚡ [${secId.toUpperCase()}] content matrices updated directly in workspace context!`);
-  };
+    const isEditing = activeEditorSection === (innerListKey ? `${sectionKey}_${innerListKey}` : sectionKey);
 
-  const sectionsList = [
-    { id: "hero", label: "Hero Section", description: "Manage overlay banners, cinematic background video/image assets, and CTA buttons.", icon: Sparkles },
-    { id: "services", label: "Featured Services", description: "Display, add, and reorder active business core services lists.", icon: Briefcase },
-    { id: "journey", label: "Journey Highlights", description: "Configure chronological milestones pinned on home page snapshot matrix.", icon: History },
-    { id: "collaborations", label: "Brand Collaborations", description: "Manage client logos grid panel, carousels, and success analytics.", icon: Handshake },
-    { id: "campaigns", label: "Featured Campaigns", description: "Display high-end product launch videos and media decks links.", icon: Layers },
-    { id: "statistics", label: "Statistics Counters", description: "Configure numeric reach parameters (e.g. Happy Clients, Years Active).", icon: BarChart },
-    { id: "testimonials", label: "Testimonials Preview", description: "Curate active review slide arrays, client comments, and featured tags.", icon: Award },
-    { id: "newsletter", label: "Newsletter Hub", description: "Configure subscriptions text values and marketing fields status.", icon: Mail },
-    { id: "contact", label: "Contact Preview Overlay", description: "Manage quick telephone numbers, booking email hooks, and embedded maps.", icon: Phone }
-  ];
+    const handleSaveItem = () => {
+      let nextList = [];
+      if (editingItemId) {
+        nextList = listData.map(item => item.id === editingItemId ? { ...item, ...draftItem } : item);
+        showToast("Item updated.");
+      } else {
+        const newItem = { ...draftItem, id: `item-${Date.now()}`, status: draftItem.status || 'Active', order: listData.length + 1 };
+        nextList = [...listData, newItem];
+        showToast("Item created.");
+      }
+      
+      if (innerListKey) {
+        const parentObj = homepageData[sectionKey] || {};
+        updateSection('homepage', { [sectionKey]: { ...parentObj, [innerListKey]: nextList } });
+      } else {
+        updateSection('homepage', { [sectionKey]: nextList });
+      }
+      setActiveEditorSection(null); setEditingItemId(null); setDraftItem({});
+    };
+
+    const handleDeleteItem = (id) => {
+      if (window.confirm("Delete this item?")) {
+        const nextList = listData.filter(item => item.id !== id);
+        if (innerListKey) {
+          const parentObj = homepageData[sectionKey] || {};
+          updateSection('homepage', { [sectionKey]: { ...parentObj, [innerListKey]: nextList } });
+        } else {
+          updateSection('homepage', { [sectionKey]: nextList });
+        }
+        showToast("Deleted.");
+      }
+    };
+
+    return (
+      <div className="flex flex-col gap-4">
+        {!isEditing && (
+          <div className="flex flex-col gap-3">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-zinc-900 text-zinc-500 font-mono uppercase text-[9px] tracking-wider">
+                    {displayColumns.map(col => <th key={col.key} className="py-2 px-3">{col.label}</th>)}
+                    <th className="py-2 px-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listData.map((item, idx) => (
+                    <tr key={item.id || idx} className="border-b border-zinc-900/60 hover:bg-zinc-900/10 text-zinc-300">
+                      {displayColumns.map(col => (
+                        <td key={col.key} className="py-2.5 px-3 truncate">
+                          {col.type === 'image' || col.type === 'video' || col.type === 'gallery' ? (
+                            item[col.key] ? <div className="w-8 h-8 rounded border border-zinc-800 bg-zinc-950 flex items-center justify-center overflow-hidden"><img src={typeof item[col.key] === 'string' ? item[col.key].split(',')[0] : item[col.key]} className="w-full h-full object-cover" /></div> : '-'
+                          ) : col.type === 'switch' ? (
+                            <Switch checked={item[col.key] === true || item[col.key] === 'Active'} onChange={() => {}} />
+                          ) : item[col.key] || '-'}
+                        </td>
+                      ))}
+                      <td className="py-2.5 px-3 text-right flex items-center justify-end gap-1.5">
+                        <button onClick={() => { setActiveEditorSection(innerListKey ? `${sectionKey}_${innerListKey}` : sectionKey); setEditingItemId(item.id); setDraftItem({ ...item }); }} className="p-1 hover:bg-zinc-900 rounded text-amber-500"><Edit3 className="w-3 h-3" /></button>
+                        <button onClick={() => handleDeleteItem(item.id)} className="p-1 hover:bg-zinc-900 rounded text-rose-500"><Trash2 className="w-3 h-3" /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <Button onClick={() => { setActiveEditorSection(innerListKey ? `${sectionKey}_${innerListKey}` : sectionKey); setEditingItemId(null); setDraftItem({}); }} variant="secondary" size="sm" className="gap-1 text-xs border border-zinc-800 text-luxury-gold"><Plus className="w-3.5 h-3.5" /> <span>Add Row</span></Button>
+            </div>
+          </div>
+        )}
+
+        {isEditing && (
+          <div className="border border-zinc-900 p-4 rounded bg-zinc-900/10 flex flex-col gap-3">
+            <span className="text-[10px] font-mono uppercase text-luxury-gold border-b border-zinc-900 pb-1.5">Editor</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {fields.map(field => {
+                if (field.type === 'textarea') return <div key={field.key} className="md:col-span-2"><Input label={field.label} textarea rows={2} value={draftItem[field.key] || ''} onChange={e => setDraftItem({ ...draftItem, [field.key]: e.target.value })} /></div>;
+                if (field.type === 'upload' || field.type === 'video' || field.type === 'gallery' || field.type === 'reel') return <div key={field.key} className="border border-zinc-900 p-3 rounded bg-zinc-950/40 flex flex-col gap-2"><span className="text-[9px] font-mono text-zinc-550 block uppercase">{field.label}</span>{draftItem[field.key] ? <div className="relative w-full h-20 bg-zinc-950 overflow-hidden"><img src={draftItem[field.key].split(',')[0]} className="w-full h-full object-cover" /><button onClick={() => setDraftItem({ ...draftItem, [field.key]: "" })} className="absolute top-1 right-1 p-1 bg-black/60 rounded text-rose-455"><Trash2 className="w-3.5 h-3.5" /></button></div> : <div onClick={() => simulateMediaUpload(field.key)} className="h-20 border border-dashed border-zinc-850 cursor-pointer flex justify-center items-center"><UploadCloud className="w-4 h-4 text-zinc-650" /></div>}</div>;
+                if (field.type === 'switch') return <div key={field.key} className="flex items-center justify-between border border-zinc-900 p-3 rounded bg-zinc-950/40"><span className="text-[10px] font-bold text-zinc-400 uppercase">{field.label}</span><Switch checked={draftItem[field.key] === true || draftItem[field.key] === 'Active'} onChange={v => setDraftItem({ ...draftItem, [field.key]: v })} /></div>;
+                if (field.type === 'select') return <div key={field.key} className="flex flex-col gap-1"><label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{field.label}</label><select className="bg-zinc-900 border border-zinc-800 rounded p-2 text-xs text-zinc-200" value={draftItem[field.key] || field.options[0]} onChange={e => setDraftItem({ ...draftItem, [field.key]: e.target.value })}>{field.options.map(o => <option key={o} value={o}>{o}</option>)}</select></div>;
+                return <Input key={field.key} label={field.label} type={field.type || 'text'} value={draftItem[field.key] || ''} onChange={e => setDraftItem({ ...draftItem, [field.key]: e.target.value })} />;
+              })}
+            </div>
+            <div className="flex justify-end gap-2 pt-2.5">
+              <button onClick={() => { setActiveEditorSection(null); setEditingItemId(null); setDraftItem({}); }} className="px-3 py-1 text-xs text-zinc-550 hover:text-white">Cancel</button>
+              <button onClick={handleSaveItem} className="px-4 py-1.5 bg-luxury-gold text-black font-bold text-xs rounded">Save Record</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="flex flex-col gap-6 text-left relative">
+    <div className="flex flex-col gap-6 text-left relative pb-20">
       
-      {/* TOP GLOBAL ACTION BAR CONTROL */}
+      {toast && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 rounded-full shadow-gold-glow border flex items-center gap-2.5 bg-zinc-950 border-luxury-gold/50 text-luxury-gold font-sans">
+          <AlertCircle className="w-4 h-4" />
+          <span className="text-xs font-semibold">{toast.message}</span>
+        </div>
+      )}
+
       <div className="border-b border-zinc-800/80 pb-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-2xl font-medium tracking-wide text-zinc-100 flex items-center gap-2">
             <Home className="w-5 h-5 text-luxury-gold" />
-            Homepage Management
+            Homepage Dynamic CMS
           </h1>
-          <p className="text-xs text-zinc-500 mt-1">
-            Maintain immersive structure layouts, content publishing metrics, and control panels.
-          </p>
+          <p className="text-xs text-zinc-500 mt-1">Reorganized to map perfectly with Visitor Website naming and structures.</p>
         </div>
-        
-        {/* GLOBAL STRIP BUTTONS */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={() => setShowGlobalAddForm(!showGlobalAddForm)} variant="secondary" size="sm" className={`gap-1.5 text-xs border ${showGlobalAddForm ? 'border-luxury-gold bg-luxury-gold/10 text-luxury-gold' : 'border-zinc-800 hover:bg-zinc-900'}`}>
-            <Plus className="w-3.5 h-3.5 stroke-[3]" /> <span className="font-semibold">Add Section</span>
+          <Button onClick={() => { setExpandedCards(prev => ({...prev, customSections: true})); setActiveEditorSection('customSections'); setEditingItemId(null); setDraftItem({}); document.getElementById('customSections')?.scrollIntoView(); }} variant="secondary" size="sm" className="bg-zinc-900 border-zinc-800 text-zinc-300">
+             <Plus className="w-4 h-4 mr-1.5" /> Add Section
           </Button>
-          <Button onClick={() => setSimulatedLivePreview(!simulatedLivePreview)} variant="secondary" size="sm" className={`gap-1.5 text-xs border ${simulatedLivePreview ? 'border-luxury-gold bg-luxury-gold/5 text-luxury-gold' : 'border-zinc-800'}`}>
-            <Eye className="w-3.5 h-3.5" /> <span>Preview Layout</span>
+          <Button onClick={() => { setHeroForm(homepageData?.hero || {}); setNewsletterForm(homepageData?.newsletter || {}); setEventsForm(homepageData?.events || {}); showToast("Forms reset to original database state.", "info"); }} variant="secondary" size="sm" className="bg-zinc-900 border-zinc-800 text-zinc-300">
+             <RefreshCw className="w-4 h-4 mr-1.5" /> Reset
           </Button>
-          <Button onClick={() => alert("💾 Homepage Draft Saved Successfully!")} variant="secondary" size="sm" className="gap-1.5 text-xs border border-zinc-800 text-amber-500/90">
-            <Save className="w-3.5 h-3.5" /> <span>Save Draft</span>
+          <Button onClick={() => showToast("Draft saved locally.", "success")} variant="secondary" size="sm" className="bg-zinc-900 border-zinc-800 text-zinc-300">
+             <Save className="w-4 h-4 mr-1.5" /> Save Draft
           </Button>
-          <Button onClick={() => { if(window.confirm("Reset unsaved changes?")) window.location.reload(); }} variant="secondary" size="sm" className="gap-1.5 text-xs border border-zinc-800 text-zinc-400 hover:text-rose-400">
-            <RefreshCw className="w-3.5 h-3.5" /> <span>Reset</span>
-          </Button>
-          <Button onClick={() => alert("🚀 Public production server updated successfully. Page is Live!")} variant="primary" size="sm" className="gap-1.5 text-xs bg-gradient-to-r from-luxury-gold to-luxury-darkgold text-black font-bold shadow-gold-glow">
-            <span>Publish Live</span>
+          <Button onClick={() => showToast("🚀 Public production server updated successfully. Page is Live!")} variant="primary" size="sm" className="bg-gradient-to-r from-luxury-gold to-luxury-darkgold text-black font-bold shadow-gold-glow ml-2">
+             Publish Live
           </Button>
         </div>
       </div>
 
-      {/* 1. INLINE SLIDE DOWN BANNER FOR "ADD SECTION" */}
-      {showGlobalAddForm && (
-        <div className="w-full p-5 rounded-lg border border-luxury-gold/30 bg-gradient-to-r from-zinc-950 to-zinc-900/60 shadow-[0_4px_20px_rgba(212,175,55,0.02)] animate-fadeIn flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
-            <span className="font-serif text-xs font-bold uppercase tracking-wider text-luxury-gold">Add New Custom Workspace Segment</span>
-            <button onClick={() => setShowGlobalAddForm(false)} className="text-zinc-500 hover:text-white"><X className="w-4 h-4" /></button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Section Type *</label>
-              <select className="bg-zinc-900 border border-zinc-800 rounded p-2 text-xs text-zinc-200 outline-none focus:border-luxury-gold/30" value={newSection.type} onChange={(e) => setNewSection({...newSection, type: e.target.value})}>
-                {sectionsList.map(s => <option key={s.id} value={s.label}>{s.label}</option>)}
-                <option value="Custom Code">Custom Code Section</option>
-              </select>
-            </div>
-            <Input label="Section Custom Name" value={newSection.name} onChange={(e) => setNewSection({...newSection, name: e.target.value})} placeholder="e.g. Luxury Promo Loop" />
-            <div className="flex items-center gap-3">
-              <Input label="Sequence Order" type="number" value={newSection.order} onChange={(e) => setNewSection({...newSection, order: e.target.value})} />
-              <Button onClick={() => { alert(`Success: Section [${newSection.name || newSection.type}] framework added!`); setShowGlobalAddForm(false); }} variant="primary" size="sm" className="h-[38px] px-6 bg-luxury-gold text-black font-bold mb-0.5">Create</Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 2. INLINE LIVE LAYOUT PREVIEW SANDBOX */}
-      {simulatedLivePreview && (
-        <div className="w-full rounded-lg border border-zinc-800 bg-zinc-950 overflow-hidden animate-fadeIn shadow-2xl">
-          <div className="p-3 bg-zinc-900/40 border-b border-zinc-800 flex items-center justify-between px-5">
-            <span className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Sandbox Mode Route: /preview/homepage
-            </span>
-            <button onClick={() => setSimulatedLivePreview(false)} className="text-xs text-zinc-500 hover:text-white flex items-center gap-1"><X className="w-3.5 h-3.5" /> Hide</button>
-          </div>
-          <div className="p-10 bg-luxury-bg text-center flex flex-col justify-center items-center min-h-[180px]">
-            <h1 className="font-serif text-2xl font-light text-zinc-300 tracking-widest uppercase">{homepageData?.hero?.title || "REDEFINING DIGITAL LUXURY"}</h1>
-            <p className="text-[11px] text-zinc-500 tracking-wide mt-1 max-w-sm">{homepageData?.hero?.subtitle || "Bespoke Digital Identity System"}</p>
-            <div className="mt-5 px-4 py-1 border border-luxury-gold/30 rounded text-luxury-gold font-serif text-[10px] uppercase tracking-widest">{homepageData?.hero?.ctaText || "Explore"}</div>
-          </div>
-        </div>
-      )}
-
-      {/* TWO PANEL CORE GRID LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+      <div className="grid grid-cols-1 gap-4 max-w-5xl">
         
-        {/* LEFT SECTIONS */}
-        <div className="lg:col-span-3 flex flex-col gap-4">
-          {sectionsList.map((sec) => {
-            const SectionIcon = sec.icon;
-            const isSectionOpen = activeSection === sec.id;
-            const isSectionActive = homepageData?.[sec.id]?.status !== 'Inactive';
-
-            return (
-              <Card 
-                key={sec.id}
-                className={`border transition-all duration-300 p-0 overflow-hidden bg-zinc-950/20 ${
-                  isSectionOpen ? 'border-zinc-800/80' : 'border-zinc-800/40'
-                }`}
-                title={
-                  <div className="flex items-center justify-between w-full py-4 px-5 select-none bg-zinc-950/20">
-                    <div onClick={() => toggleSection(sec.id)} className="flex items-center gap-3 cursor-pointer flex-1">
-                      <SectionIcon className={`w-4 h-4 ${isSectionOpen ? 'text-luxury-gold' : 'text-zinc-500'}`} />
-                      <div className="text-left">
-                        <h3 className="font-serif text-sm font-semibold text-zinc-200 uppercase tracking-wider flex items-center gap-2">
-                          {sec.label}
-                          {!isSectionActive && <Badge variant="secondary" className="scale-90 text-[9px] bg-zinc-900 border-zinc-800 text-zinc-500 font-sans tracking-normal font-medium">Inactive</Badge>}
-                        </h3>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 pl-4">
-                      <Switch 
-                        checked={isSectionActive} 
-                        onChange={(checked) => alert(`${sec.label} is now set to [${checked ? 'Active' : 'Inactive'}].`)}
-                      />
-                      <button onClick={() => toggleSection(sec.id)} className="text-zinc-500 hover:text-zinc-300 p-1">
-                        {isSectionOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                }
-              >
-                {isSectionOpen && (
-                  <div className="p-5 border-t border-zinc-800/80 bg-zinc-950/40 flex flex-col gap-4">
-                    
-                    {/* UNIVERSAL INLINE ACTIONS BAR */}
-                    <div className="flex items-center justify-between pb-3 border-b border-zinc-900/80 flex-wrap gap-2">
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => triggerInlineEdit(sec.id)} className={`px-2.5 py-1.5 border rounded text-xs font-semibold flex items-center gap-1.5 transition-all ${inlineEditSectionId === sec.id ? 'bg-luxury-gold/10 text-luxury-gold border-luxury-gold/30' : 'bg-zinc-900 border-zinc-800 text-zinc-200 hover:border-zinc-700'}`}>
-                          <Edit3 className="w-3.5 h-3.5" /> <span>Edit Content</span>
-                        </button>
-                        <button onClick={() => triggerInlineUpload(sec.id)} className={`px-2.5 py-1.5 border rounded text-xs font-semibold flex items-center gap-1.5 transition-all ${inlineUploadSectionId === sec.id ? 'bg-luxury-gold/10 text-luxury-gold border-luxury-gold/30' : 'bg-zinc-900 border-zinc-800 text-zinc-200 hover:border-zinc-700'}`}>
-                          <Image className="w-3.5 h-3.5" /> <span>Upload/Media</span>
-                        </button>
-                        <button onClick={() => alert(`📄 Structure [${sec.label}] cloned successfully.`)} className="px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 hover:text-white rounded text-xs font-medium flex items-center gap-1.5 transition-all">
-                          <Copy className="w-3.5 h-3.5 text-zinc-500" /> <span>Duplicate</span>
-                        </button>
-                      </div>
-                      
-                      <div className="flex items-center gap-1.5">
-                        <button onClick={() => alert("Shifted up in database layout flow.")} className="p-1.5 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white rounded"><ArrowUp className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => alert("Shifted down in database layout flow.")} className="p-1.5 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white rounded"><ArrowDown className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => window.confirm("Purge section database values?") && alert("Removed.")} className="px-2.5 py-1.5 bg-zinc-900/40 border border-zinc-900 text-zinc-500 hover:text-rose-400 rounded text-xs font-medium flex items-center gap-1">
-                          <Trash2 className="w-3.5 h-3.5" /> <span>Delete</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* ─── INLINE SUB-DRAWER A: DYNAMIC EDIT FORM CONTENT ─── */}
-                    {inlineEditSectionId === sec.id && (
-                      <div className="w-full p-4 rounded border border-zinc-800 bg-zinc-950/80 animate-fadeIn flex flex-col gap-4">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-luxury-gold block border-b border-zinc-900 pb-1.5">Inline Fields Engine: {sec.label}</span>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {sec.id === 'hero' ? (
-                            <>
-                              <Input label="Title Headline Text" value={editFormData.title || ''} onChange={e => setEditFormData({...editFormData, title: e.target.value})} />
-                              <Input label="Subtitle Tagline Overlay" value={editFormData.subtitle || ''} onChange={e => setEditFormData({...editFormData, subtitle: e.target.value})} />
-                              <Input label="CTA Button Text" value={editFormData.ctaText || ''} onChange={e => setEditFormData({...editFormData, ctaText: e.target.value})} />
-                              <Input label="CTA Redirect Link" value={editFormData.ctaLink || ''} onChange={e => setEditFormData({...editFormData, ctaLink: e.target.value})} />
-                            </>
-                          ) : sec.id === 'contact' ? (
-                            <>
-                              <Input label="Corporate Address Line" value={editFormData.address || ''} onChange={e => setEditFormData({...editFormData, address: e.target.value})} />
-                              <Input label="Booking Email Hook" value={editFormData.email || ''} onChange={e => setEditFormData({...editFormData, email: e.target.value})} />
-                              <Input label="WhatsApp Line" value={editFormData.phone || ''} onChange={e => setEditFormData({...editFormData, phone: e.target.value})} />
-                            </>
-                          ) : (
-                            <>
-                              <Input label="Section Header Title Accent" value={editFormData.heading || ''} onChange={e => setEditFormData({...editFormData, heading: e.target.value})} placeholder="e.g. Featured Highlights" />
-                              <Input label="Supporting Context Statement Description" textarea rows={2} value={editFormData.description || ''} onChange={e => setEditFormData({...editFormData, description: e.target.value})} placeholder="Write narrative text details..." />
-                            </>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-end gap-2 border-t border-zinc-900 pt-2.5">
-                          <button onClick={() => setInlineEditSectionId(null)} className="px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300">Cancel</button>
-                          <button onClick={() => saveInlineForm(sec.id)} className="px-4 py-1.5 bg-luxury-gold text-black font-bold text-xs rounded shadow-sm">Save Framework</button>
-                        </div>
-                      </div>
+        {/* 1. HERO SECTION */}
+        <Card title={<div onClick={() => toggleCard('hero')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-zinc-950/20"><div className="flex items-center gap-3"><Sparkles className="w-4 h-4 text-luxury-gold" /><span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-200">Hero Overview</span></div><ChevronDown className="w-4 h-4 text-zinc-500" /></div>} className="p-0 border-zinc-800/80 bg-zinc-950/20">
+          {expandedCards.hero && (
+            <div className="p-5 border-t border-zinc-800/80 bg-zinc-950/40 flex flex-col gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input label="Main Title" value={heroForm.title || ''} onChange={e => setHeroForm({ ...heroForm, title: e.target.value })} />
+                <Input label="Highlight Title" value={heroForm.highlightTitle || ''} onChange={e => setHeroForm({ ...heroForm, highlightTitle: e.target.value })} />
+                <Input label="Subtitle" value={heroForm.subtitle || ''} onChange={e => setHeroForm({ ...heroForm, subtitle: e.target.value })} />
+                <Input label="CTA Button Text" value={heroForm.ctaButtonText || ''} onChange={e => setHeroForm({ ...heroForm, ctaButtonText: e.target.value })} />
+                <div className="md:col-span-2"><Input label="Description" textarea rows={2} value={heroForm.description || ''} onChange={e => setHeroForm({ ...heroForm, description: e.target.value })} /></div>
+                
+                {['desktopImageUrl', 'mobileImageUrl', 'videoUrl'].map(k => (
+                  <div key={k} className="border border-zinc-900 p-3 rounded bg-zinc-900/10 flex flex-col gap-2">
+                    <span className="text-[9px] font-mono text-zinc-550 block uppercase">{k}</span>
+                    {heroForm[k] ? (
+                      <div className="relative w-full h-20 bg-zinc-950 overflow-hidden"><img src={heroForm[k]} className="w-full h-full object-cover" /><button onClick={() => setHeroForm({ ...heroForm, [k]: "" })} className="absolute top-1 right-1 p-1 bg-black/60 rounded text-rose-455"><Trash2 className="w-3.5 h-3.5" /></button></div>
+                    ) : (
+                      <div onClick={() => simulateMediaUpload(k)} className="h-20 border border-dashed border-zinc-850 cursor-pointer flex justify-center items-center"><UploadCloud className="w-4 h-4 text-zinc-650" /></div>
                     )}
-
-                    {/* ─── INLINE SUB-DRAWER B: MEDIA UPLOAD & CROP CONTROL ─── */}
-                    {inlineUploadSectionId === sec.id && (
-                      <div className="w-full p-4 rounded border border-zinc-800 bg-zinc-950/80 animate-fadeIn flex flex-col gap-3">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 block border-b border-zinc-900 pb-1.5">Asset Processing Node</span>
-                        
-                        {inlineCropActive ? (
-                          <div className="flex flex-col items-center gap-2 py-2">
-                            <div className="w-full h-32 border border-dashed border-luxury-gold/30 bg-zinc-900 rounded flex items-center justify-center relative">
-                              <div className="absolute inset-3 border border-white/10 pointer-events-none" />
-                              <span className="text-[10px] font-mono text-luxury-gold animate-pulse">CROP GRID BOUNDS ACTIVATED (16:9)</span>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <button onClick={() => setInlineCropActive(false)} className="text-xs text-zinc-500 px-2 py-1">Cancel</button>
-                              <button onClick={() => { setInlineCropActive(false); setInlineUploadSectionId(null); alert("Canvas crop matrix applied safely."); }} className="bg-luxury-gold text-black font-bold text-[11px] px-3 py-1 rounded">Apply Crop</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                            <div className="md:col-span-1 h-20 bg-zinc-900 border border-zinc-800 rounded flex flex-col items-center justify-center gap-1 text-zinc-600 cursor-pointer hover:bg-zinc-900/60 transition-colors" onClick={() => { alert("File picker executed successfully."); setInlineUploadSectionId(null); }}>
-                              <UploadCloud className="w-5 h-5 text-zinc-500" />
-                              <span className="text-[9px] uppercase font-mono tracking-wider">Browse File (.jpg, .png, .webp)</span>
-                            </div>
-                            <div className="md:col-span-2 flex items-center gap-1.5 flex-wrap pl-2">
-                              <button onClick={() => setInlineCropActive(true)} className="px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 text-xs rounded text-zinc-400 hover:text-luxury-gold transition-colors">Crop Canvas Aspect</button>
-                              <button onClick={() => window.confirm("Flush image path?") && setInlineUploadSectionId(null)} className="px-2 py-1.5 text-xs text-zinc-600 hover:text-rose-400">Remove</button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
                   </div>
-                )}
-              </Card>
-            );
-          })}
-        </div>
-
-        {/* RIGHT SIDE DRAWER SYSTEM MONITORING (SLIDE-DOWN DRAWER LOGS) */}
-        <div className="flex flex-col gap-4">
-          <Card className="border border-zinc-800/60 bg-zinc-950/40 p-4" title={<span className="font-serif text-xs font-bold uppercase tracking-widest text-zinc-400">Workspace Logs</span>}>
-            <div className="flex flex-col gap-2.5 mt-3">
-              <button onClick={() => setSimulatedLivePreview(!simulatedLivePreview)} className="w-full py-2 px-3 rounded bg-zinc-900 border border-zinc-800 hover:border-luxury-gold/40 text-xs font-medium text-zinc-200 flex items-center justify-between transition-all">
-                <span>Toggle Preview Layout</span> <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
-              </button>
-              <button onClick={() => setShowInlineHistory(!showInlineHistory)} className={`w-full py-2 px-3 rounded border text-left text-xs font-medium flex items-center justify-between transition-all ${showInlineHistory ? 'border-luxury-gold text-luxury-gold bg-luxury-gold/5' : 'bg-zinc-900/40 border-zinc-900 text-zinc-400 hover:text-zinc-200'}`}>
-                <span>History Logs Tracking</span> <Badge variant="secondary" className="scale-95 text-[9px] bg-zinc-950 border-zinc-800 font-sans font-normal">Logs</Badge>
-              </button>
+                ))}
+              </div>
+              <div className="flex justify-end border-t border-zinc-900 pt-3"><Button onClick={() => handleSingleSave('hero', heroForm)}>Save Hero</Button></div>
             </div>
+          )}
+        </Card>
 
-            {/* INLINE HISTORICAL TRACK LOGS SHOWN IMMEDIATELY INSIDE THE PANEL */}
-            {showInlineHistory && (
-              <div className="mt-4 border-t border-zinc-900 pt-3 flex flex-col gap-3 font-sans text-[11px] text-zinc-400 animate-fadeIn max-h-[150px] overflow-y-auto pr-1">
-                <div className="pb-2 border-b border-zinc-900">
-                  <span className="text-[9px] font-mono text-zinc-500 block">Today • 11:30 AM</span>
-                  <p className="text-zinc-300 font-medium">Hero Section Content Modified</p>
-                  <span className="text-[9px] text-luxury-gold">By: Akanksha Dua</span>
+        {/* 2. STATISTICS SECTION */}
+        <Card title={<div onClick={() => toggleCard('stats')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-zinc-950/20"><div className="flex items-center gap-3"><BarChart className="w-4 h-4 text-luxury-gold" /><span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-200">Global Impact Statistics</span></div><ChevronDown className="w-4 h-4 text-zinc-500" /></div>} className="p-0 border-zinc-800/80 bg-zinc-950/20">
+          {expandedCards.stats && (
+            <div className="p-5 border-t border-zinc-800/80 bg-zinc-950/40">
+              {renderListManager({
+                sectionKey: 'statistics',
+                displayColumns: [{ key: 'counterNumber', label: 'Counter' }, { key: 'counterLabel', label: 'Label' }, { key: 'activeToggle', label: 'Active', type: 'switch' }],
+                fields: [
+                  { key: 'counterNumber', label: 'Counter Number' }, { key: 'counterLabel', label: 'Counter Label' }, 
+                  { key: 'icon', label: 'Icon String' }, { key: 'order', label: 'Display Order', type: 'number' },
+                  { key: 'animationToggle', label: 'Enable Animation', type: 'switch' }, { key: 'activeToggle', label: 'Active Status', type: 'switch' }
+                ]
+              })}
+            </div>
+          )}
+        </Card>
+
+        {/* 3. CORE VALUES SECTION */}
+        <Card title={<div onClick={() => toggleCard('coreValues')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-zinc-950/20"><div className="flex items-center gap-3"><Star className="w-4 h-4 text-luxury-gold" /><span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-200">Foundational Core Values</span></div><ChevronDown className="w-4 h-4 text-zinc-500" /></div>} className="p-0 border-zinc-800/80 bg-zinc-950/20">
+          {expandedCards.coreValues && (
+            <div className="p-5 border-t border-zinc-800/80 bg-zinc-950/40">
+              {renderListManager({
+                sectionKey: 'coreValues',
+                displayColumns: [{ key: 'valueName', label: 'Value Name' }, { key: 'image', label: 'Image', type: 'image' }, { key: 'status', label: 'Status' }],
+                fields: [
+                  { key: 'title', label: 'Title' }, { key: 'subtitle', label: 'Subtitle' }, { key: 'valueName', label: 'Value Name' },
+                  { key: 'description', label: 'Short Description', type: 'textarea' }, { key: 'longDescription', label: 'Long Description', type: 'textarea' }, 
+                  { key: 'icon', label: 'Icon String' }, { key: 'image', label: 'Main Image', type: 'upload' },
+                  { key: 'order', label: 'Display Order', type: 'number' }, { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'] }
+                ]
+              })}
+            </div>
+          )}
+        </Card>
+
+        {/* 4. NEWSLETTER SECTION */}
+        <Card title={<div onClick={() => toggleCard('newsletter')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-zinc-950/20"><div className="flex items-center gap-3"><Mail className="w-4 h-4 text-luxury-gold" /><span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-200">Exclusive Newsletter Hub</span></div><ChevronDown className="w-4 h-4 text-zinc-500" /></div>} className="p-0 border-zinc-800/80 bg-zinc-950/20">
+          {expandedCards.newsletter && (
+            <div className="p-5 border-t border-zinc-800/80 bg-zinc-950/40 flex flex-col gap-4">
+              <span className="text-[10px] font-mono uppercase text-luxury-gold border-b border-zinc-900 pb-1.5">Newsletter Layout Settings</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Switch label="Enable Newsletter Section" checked={newsletterForm.enableNewsletter !== false} onChange={v => setNewsletterForm({...newsletterForm, enableNewsletter: v})} />
+                <Switch label="Enable Email Validation" checked={newsletterForm.enableEmailValidation !== false} onChange={v => setNewsletterForm({...newsletterForm, enableEmailValidation: v})} />
+                <Switch label="Enable Form Animations" checked={newsletterForm.enableAnimation !== false} onChange={v => setNewsletterForm({...newsletterForm, enableAnimation: v})} />
+                <Switch label="Enable Auto Response" checked={newsletterForm.enableAutoResponse !== false} onChange={v => setNewsletterForm({...newsletterForm, enableAutoResponse: v})} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <Input label="Small Heading" value={newsletterForm.smallHeading || ''} onChange={e => setNewsletterForm({ ...newsletterForm, smallHeading: e.target.value })} />
+                <Input label="Main Heading" value={newsletterForm.mainHeading || ''} onChange={e => setNewsletterForm({ ...newsletterForm, mainHeading: e.target.value })} />
+                <div className="md:col-span-2"><Input label="Description" textarea rows={2} value={newsletterForm.description || ''} onChange={e => setNewsletterForm({ ...newsletterForm, description: e.target.value })} /></div>
+                <Input label="Email Placeholder" value={newsletterForm.placeholderText || ''} onChange={e => setNewsletterForm({ ...newsletterForm, placeholderText: e.target.value })} />
+                <Input label="Subscribe Button Text" value={newsletterForm.buttonText || ''} onChange={e => setNewsletterForm({ ...newsletterForm, buttonText: e.target.value })} />
+                <Input label="Success Message" value={newsletterForm.successMessage || ''} onChange={e => setNewsletterForm({ ...newsletterForm, successMessage: e.target.value })} />
+                <Input label="Error Message" value={newsletterForm.errorMessage || ''} onChange={e => setNewsletterForm({ ...newsletterForm, errorMessage: e.target.value })} />
+                <div className="md:col-span-2"><Input label="Privacy Text" value={newsletterForm.privacyText || ''} onChange={e => setNewsletterForm({ ...newsletterForm, privacyText: e.target.value })} /></div>
+                
+                {['backgroundImage', 'backgroundVideo', 'leftIllustration', 'rightIllustration'].map(k => (
+                  <div key={k} className="border border-zinc-900 p-3 rounded bg-zinc-900/10 flex flex-col gap-2">
+                    <span className="text-[9px] font-mono text-zinc-550 block uppercase">{k}</span>
+                    {newsletterForm[k] ? (
+                      <div className="relative w-full h-20 bg-zinc-950 overflow-hidden"><img src={newsletterForm[k]} className="w-full h-full object-cover" /><button onClick={() => setNewsletterForm({ ...newsletterForm, [k]: "" })} className="absolute top-1 right-1 p-1 bg-black/60 rounded text-rose-455"><Trash2 className="w-3.5 h-3.5" /></button></div>
+                    ) : (
+                      <div onClick={() => simulateMediaUpload(k)} className="h-20 border border-dashed border-zinc-850 cursor-pointer flex justify-center items-center"><UploadCloud className="w-4 h-4 text-zinc-650" /></div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end border-t border-zinc-900 pt-3 pb-6"><Button onClick={() => handleSingleSave('newsletter', newsletterForm)}>Save Newsletter Layout</Button></div>
+              
+              {/* SUBSCRIBERS TABLE */}
+              <span className="text-[10px] font-mono uppercase text-luxury-gold border-b border-zinc-900 pb-1.5 mt-2">Subscriber Management</span>
+              <div className="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-900">
+                <div className="flex items-center gap-2 px-3">
+                   <Search className="w-4 h-4 text-zinc-500" />
+                   <input type="text" placeholder="Search subscribers..." value={subscriberSearch} onChange={(e)=>setSubscriberSearch(e.target.value)} className="bg-transparent border-none outline-none text-xs text-zinc-200 w-48" />
                 </div>
-                <div>
-                  <span className="text-[9px] font-mono text-zinc-500 block">Yesterday • 04:15 PM</span>
-                  <p className="text-zinc-300 font-medium">Brand Logos Loops Synchronized</p>
-                  <span className="text-[9px] text-zinc-500">By: Dev Rahul</span>
+                <div className="flex gap-2">
+                   <Button onClick={handleExportCSV} variant="secondary" size="sm" className="gap-1.5 text-xs border border-zinc-800 text-luxury-gold"><Download className="w-3.5 h-3.5" /> CSV Export</Button>
+                   <Button onClick={handleBulkDeleteSubscribers} variant="secondary" size="sm" className="gap-1.5 text-xs border border-zinc-800 text-rose-500"><Trash2 className="w-3.5 h-3.5" /> Bulk Delete</Button>
                 </div>
               </div>
-            )}
-          </Card>
-        </div>
+              <table className="w-full text-xs text-left border-collapse mt-2">
+                <thead>
+                  <tr className="border-b border-zinc-900 text-zinc-500 font-mono uppercase text-[9px] tracking-wider">
+                    <th className="py-2 px-3">Name</th><th className="py-2 px-3">Email</th><th className="py-2 px-3">Date</th><th className="py-2 px-3">Status</th><th className="py-2 px-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(homepageData?.newsletter?.subscribers || []).filter(s => s.name.toLowerCase().includes(subscriberSearch.toLowerCase()) || s.email.toLowerCase().includes(subscriberSearch.toLowerCase())).map(sub => (
+                    <tr key={sub.id} className="border-b border-zinc-900/60 text-zinc-300">
+                      <td className="py-2.5 px-3">{sub.name}</td><td className="py-2.5 px-3">{sub.email}</td><td className="py-2.5 px-3 font-mono text-[10px]">{sub.subscriptionDate}</td>
+                      <td className="py-2.5 px-3 text-luxury-gold">{sub.status}</td>
+                      <td className="py-2.5 px-3 text-right"><button onClick={() => handleDeleteSubscriber(sub.id)} className="p-1 hover:bg-zinc-900 rounded text-rose-500"><Trash2 className="w-3 h-3" /></button></td>
+                    </tr>
+                  ))}
+                  {(homepageData?.newsletter?.subscribers || []).length === 0 && <tr><td colSpan={5} className="text-center py-6 text-zinc-600 font-mono italic">No active subscribers found.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        {/* 5. EVENT SECTION */}
+        <Card title={<div onClick={() => toggleCard('events')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-zinc-950/20"><div className="flex items-center gap-3"><Calendar className="w-4 h-4 text-luxury-gold" /><span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-200">Corporate Events Manager</span></div><ChevronDown className="w-4 h-4 text-zinc-500" /></div>} className="p-0 border-zinc-800/80 bg-zinc-950/20">
+          {expandedCards.events && (
+            <div className="p-5 border-t border-zinc-800/80 bg-zinc-950/40 flex flex-col gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-5 border-b border-zinc-900">
+                 <Input label="Section Title" value={eventsForm.sectionTitle || ''} onChange={e => setEventsForm({...eventsForm, sectionTitle: e.target.value})} />
+                 <Input label="Subtitle" value={eventsForm.subtitle || ''} onChange={e => setEventsForm({...eventsForm, subtitle: e.target.value})} />
+                 <div className="md:col-span-2"><Input label="Description" textarea rows={2} value={eventsForm.description || ''} onChange={e => setEventsForm({...eventsForm, description: e.target.value})} /></div>
+                 <div className="md:col-span-2 flex justify-end"><Button onClick={() => handleSingleSave('events', eventsForm)}>Save Event Headers</Button></div>
+              </div>
+              {renderListManager({
+                sectionKey: 'events',
+                innerListKey: 'list',
+                displayColumns: [{ key: 'eventName', label: 'Event Name' }, { key: 'eventDate', label: 'Date' }, { key: 'eventBanner', label: 'Banner', type: 'image' }],
+                fields: [
+                  { key: 'eventName', label: 'Event Name' }, { key: 'eventCategory', label: 'Category' }, 
+                  { key: 'eventDate', label: 'Date' }, { key: 'eventTime', label: 'Time' },
+                  { key: 'eventLocation', label: 'Venue Location' }, { key: 'speaker', label: 'Speaker' }, 
+                  { key: 'shortDescription', label: 'Short Description', type: 'textarea' }, { key: 'fullDescription', label: 'Full Description', type: 'textarea' },
+                  { key: 'registrationButtonText', label: 'Registration CTA' }, { key: 'registrationUrl', label: 'Registration URL' },
+                  { key: 'eventBanner', label: 'Event Banner', type: 'upload' }, { key: 'eventThumbnail', label: 'Event Thumbnail', type: 'upload' },
+                  { key: 'eventGalleryImages', label: 'Gallery Images (CSV)', type: 'gallery' }, { key: 'eventVideo', label: 'Event Video', type: 'video' },
+                  { key: 'eventReel', label: 'Event Reel', type: 'reel' },
+                  { key: 'featuredToggle', label: 'Featured Event', type: 'switch' }, { key: 'activeToggle', label: 'Active', type: 'switch' }
+                ]
+              })}
+            </div>
+          )}
+        </Card>
+
+        {/* 6. DYNAMIC CUSTOM SECTIONS */}
+        <Card id="customSections" title={<div onClick={() => toggleCard('customSections')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-luxury-gold/10 border-b border-luxury-gold/20"><div className="flex items-center gap-3"><Plus className="w-5 h-5 text-luxury-gold" /><span className="font-serif text-sm font-bold uppercase tracking-wider text-luxury-gold">Dynamic Custom Sections Builder</span></div><ChevronDown className="w-4 h-4 text-luxury-gold" /></div>} className="p-0 border-luxury-gold/30 bg-zinc-950/20 shadow-gold-glow-sm">
+          {expandedCards.customSections && (
+            <div className="p-5 flex flex-col gap-5">
+              <div className="text-sm text-zinc-400 mb-2">Build completely custom layout sections that will render dynamically on your homepage. Select the layout type and populate the media using the Media Hub.</div>
+              {renderListManager({
+                sectionKey: 'customSections',
+                displayColumns: [{ key: 'sectionTitle', label: 'Title' }, { key: 'layoutType', label: 'Layout Type' }, { key: 'primaryMediaUrl', label: 'Media', type: 'image' }],
+                fields: [
+                  { key: 'sectionTitle', label: 'Section Title' },
+                  { key: 'subtitle', label: 'Subtitle' },
+                  { key: 'layoutType', label: 'Layout Type', type: 'select', options: ['Full Width Hero', 'Split Image & Text', 'Video Background', 'Feature Grid', 'Call to Action Block'] },
+                  { key: 'description', label: 'Content Paragraph', type: 'textarea' },
+                  { key: 'primaryMediaUrl', label: 'Primary Media', type: 'upload' },
+                  { key: 'ctaText', label: 'Button Text' },
+                  { key: 'ctaLink', label: 'Button Link' },
+                  { key: 'order', label: 'Display Order', type: 'number' },
+                  { key: 'status', label: 'Visibility Status', type: 'select', options: ['Active', 'Hidden', 'Draft'] }
+                ]
+              })}
+            </div>
+          )}
+        </Card>
+
+        {/* LEGACY SECTIONS (Restored untouched) */}
+        <Card title={<div onClick={() => toggleCard('heroSlides')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-zinc-950/20"><div className="flex items-center gap-3"><Layers className="w-4 h-4 text-zinc-500" /><span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-400">Hero Slides (Legacy)</span></div><ChevronDown className="w-4 h-4 text-zinc-500" /></div>} className="p-0 border-zinc-800/40 bg-zinc-950/10">
+          {expandedCards.heroSlides && <div className="p-5 border-t border-zinc-800/80">{renderListManager({ sectionKey: 'heroSlides', displayColumns: [{ key: 'title', label: 'Title' }, { key: 'mediaUrl', label: 'Media', type: 'image' }], fields: [{ key: 'title', label: 'Slide Title' }, { key: 'subtitle', label: 'Subtitle' }, { key: 'description', label: 'Description', type: 'textarea' }, { key: 'mediaType', label: 'Media Type', type: 'select', options: ['image', 'video'] }, { key: 'mediaUrl', label: 'Media File', type: 'upload' }, { key: 'buttonText', label: 'Button Text' }, { key: 'buttonUrl', label: 'Button URL' }, { key: 'order', label: 'Order', type: 'number' }, { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'] }] })}</div>}
+        </Card>
+        <Card title={<div onClick={() => toggleCard('projects')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-zinc-950/20"><div className="flex items-center gap-3"><Briefcase className="w-4 h-4 text-zinc-500" /><span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-400">Projects (Legacy)</span></div><ChevronDown className="w-4 h-4 text-zinc-500" /></div>} className="p-0 border-zinc-800/40 bg-zinc-950/10">
+          {expandedCards.projects && <div className="p-5 border-t border-zinc-800/80">{renderListManager({ sectionKey: 'featuredProjects', displayColumns: [{ key: 'title', label: 'Title' }, { key: 'thumbnailUrl', label: 'Thumbnail', type: 'image' }], fields: [{ key: 'title', label: 'Title' }, { key: 'description', label: 'Description', type: 'textarea' }, { key: 'thumbnailUrl', label: 'Thumbnail', type: 'upload' }, { key: 'previewImageUrl', label: 'Preview Image', type: 'upload' }, { key: 'previewVideoUrl', label: 'Preview Video', type: 'video' }, { key: 'redirectLink', label: 'Redirect Link' }, { key: 'order', label: 'Order', type: 'number' }, { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'] }] })}</div>}
+        </Card>
+        <Card title={<div onClick={() => toggleCard('videoSlider')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-zinc-950/20"><div className="flex items-center gap-3"><Play className="w-4 h-4 text-zinc-500" /><span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-400">Video Slider (Legacy)</span></div><ChevronDown className="w-4 h-4 text-zinc-500" /></div>} className="p-0 border-zinc-800/40 bg-zinc-950/10">
+          {expandedCards.videoSlider && <div className="p-5 border-t border-zinc-800/80">{renderListManager({ sectionKey: 'videoSlider', displayColumns: [{ key: 'title', label: 'Title' }, { key: 'videoUrl', label: 'Video', type: 'video' }], fields: [{ key: 'title', label: 'Title' }, { key: 'description', label: 'Description', type: 'textarea' }, { key: 'videoUrl', label: 'Upload Video', type: 'video' }, { key: 'thumbnailUrl', label: 'Upload Thumbnail', type: 'upload' }, { key: 'redirectUrl', label: 'Redirect Link' }, { key: 'order', label: 'Order', type: 'number' }, { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'] }] })}</div>}
+        </Card>
+        <Card title={<div onClick={() => toggleCard('reels')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-zinc-950/20"><div className="flex items-center gap-3"><Film className="w-4 h-4 text-zinc-500" /><span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-400">Reels (Legacy)</span></div><ChevronDown className="w-4 h-4 text-zinc-500" /></div>} className="p-0 border-zinc-800/40 bg-zinc-950/10">
+          {expandedCards.reels && <div className="p-5 border-t border-zinc-800/80">{renderListManager({ sectionKey: 'reels', displayColumns: [{ key: 'title', label: 'Title' }, { key: 'videoUrl', label: 'Reel Video', type: 'reel' }], fields: [{ key: 'title', label: 'Title' }, { key: 'category', label: 'Category' }, { key: 'duration', label: 'Duration' }, { key: 'videoUrl', label: 'Upload Reel', type: 'reel' }, { key: 'thumbnailUrl', label: 'Upload Thumbnail', type: 'upload' }, { key: 'order', label: 'Order', type: 'number' }, { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'] }] })}</div>}
+        </Card>
+        <Card title={<div onClick={() => toggleCard('shorts')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-zinc-950/20"><div className="flex items-center gap-3"><Video className="w-4 h-4 text-zinc-500" /><span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-400">Shorts (Legacy)</span></div><ChevronDown className="w-4 h-4 text-zinc-500" /></div>} className="p-0 border-zinc-800/40 bg-zinc-950/10">
+          {expandedCards.shorts && <div className="p-5 border-t border-zinc-800/80">{renderListManager({ sectionKey: 'shorts', displayColumns: [{ key: 'title', label: 'Title' }, { key: 'videoUrl', label: 'Short Video', type: 'video' }], fields: [{ key: 'title', label: 'Title' }, { key: 'description', label: 'Description', type: 'textarea' }, { key: 'videoUrl', label: 'Upload Short', type: 'video' }, { key: 'thumbnailUrl', label: 'Upload Thumbnail', type: 'upload' }, { key: 'order', label: 'Order', type: 'number' }, { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'] }] })}</div>}
+        </Card>
+        <Card title={<div onClick={() => toggleCard('longVideos')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-zinc-950/20"><div className="flex items-center gap-3"><Film className="w-4 h-4 text-zinc-500" /><span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-400">Long Videos (Legacy)</span></div><ChevronDown className="w-4 h-4 text-zinc-500" /></div>} className="p-0 border-zinc-800/40 bg-zinc-950/10">
+          {expandedCards.longVideos && <div className="p-5 border-t border-zinc-800/80">{renderListManager({ sectionKey: 'longVideos', displayColumns: [{ key: 'title', label: 'Title' }, { key: 'videoUrl', label: 'Long Video', type: 'video' }], fields: [{ key: 'title', label: 'Title' }, { key: 'description', label: 'Description', type: 'textarea' }, { key: 'videoUrl', label: 'Upload Long Video', type: 'video' }, { key: 'thumbnailUrl', label: 'Upload Thumbnail', type: 'upload' }, { key: 'order', label: 'Order', type: 'number' }, { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'] }] })}</div>}
+        </Card>
+        <Card title={<div onClick={() => toggleCard('services')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-zinc-950/20"><div className="flex items-center gap-3"><Briefcase className="w-4 h-4 text-zinc-500" /><span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-400">Services Preview (Legacy)</span></div><ChevronDown className="w-4 h-4 text-zinc-500" /></div>} className="p-0 border-zinc-800/40 bg-zinc-950/10">
+          {expandedCards.services && <div className="p-5 border-t border-zinc-800/80">{renderListManager({ sectionKey: 'servicesPreview', displayColumns: [{ key: 'name', label: 'Service Name' }, { key: 'iconUrl', label: 'Icon', type: 'image' }], fields: [{ key: 'name', label: 'Name' }, { key: 'iconUrl', label: 'Icon Upload', type: 'upload' }, { key: 'description', label: 'Description', type: 'textarea' }, { key: 'redirectLink', label: 'Link URL' }, { key: 'order', label: 'Order', type: 'number' }, { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'] }] })}</div>}
+        </Card>
+        <Card title={<div onClick={() => toggleCard('logos')} className="flex items-center justify-between w-full py-4 px-5 cursor-pointer bg-zinc-950/20"><div className="flex items-center gap-3"><Handshake className="w-4 h-4 text-zinc-500" /><span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-400">Client Logos (Legacy)</span></div><ChevronDown className="w-4 h-4 text-zinc-500" /></div>} className="p-0 border-zinc-800/40 bg-zinc-950/10">
+          {expandedCards.logos && <div className="p-5 border-t border-zinc-800/80">{renderListManager({ sectionKey: 'clientLogos', displayColumns: [{ key: 'clientName', label: 'Client' }, { key: 'logoUrl', label: 'Logo', type: 'image' }], fields: [{ key: 'clientName', label: 'Client Name' }, { key: 'logoUrl', label: 'Client Logo', type: 'upload' }, { key: 'websiteLink', label: 'Website URL' }, { key: 'order', label: 'Order', type: 'number' }, { key: 'status', label: 'Status', type: 'select', options: ['Active', 'Inactive'] }] })}</div>}
+        </Card>
 
       </div>
-
-      {/* Global Status Footer */}
-      <div className="flex items-center justify-end mt-4 p-4 border border-zinc-900 bg-zinc-950/30 rounded-lg lg:col-span-4">
-        <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold mr-6">
-          <ShieldCheck className="w-4 h-4" />
-          <span>Inline workspace system layout running smoothly with immediate UI response hooks.</span>
-        </div>
-      </div>
-
     </div>
   );
 };

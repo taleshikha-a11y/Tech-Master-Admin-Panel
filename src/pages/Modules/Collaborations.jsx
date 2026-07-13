@@ -1,1245 +1,761 @@
-import React, { useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState } from 'react';
+import { useMediaManager } from "../../context/MediaContext";
+import { useDatabase } from '../../context/DatabaseContext';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Switch } from '../../components/ui/Switch';
+import { Badge } from '../../components/ui/Badge';
+import { Input } from '../../components/ui/Input';
+import { ConfirmDialog, Dialog } from '../../components/ui/Dialog';
 import {
-  Search,
-  Plus,
-  Eye,
-  Edit2,
-  Trash2,
-  Handshake,
-  Building2,
-  Star,
-  BarChart3,
-  LayoutGrid,
-  Table2,
-  CheckCircle2,
-  Globe,
-  X,
-  Calendar,
-} from "lucide-react";
+  Briefcase, Star, Users, BarChart, FileText, Clock, Workflow, MessageSquare, Globe,
+  Edit3, Trash2, ArrowUp, ArrowDown, X, UploadCloud, Plus, Save,
+  RefreshCw, Eye, Search, AlertCircle, Settings, ChevronDown, ChevronRight, LayoutGrid
+} from 'lucide-react';
 
-import { Button } from "../../components/ui/Button";
+export default function Collaborations() {
+  const { db, updateSection, deleteNestedItem } = useDatabase();
+  const collaborationsPage = db?.collaborationsPage || {};
 
-const Collaborations = ({
-  itemsList = [],
-  handleOpenAddForm,
-  setDeleteId,
-  setEditingItem,
-  setShowFormModal,
-}) => {
+  // Collapsible cards state
+  const [expandedCards, setExpandedCards] = useState({
+    hero: true,
+    brandCarousel: false,
+    partners: false,
+    metrics: false,
+    campaigns: false,
+    history: false,
+    process: false,
+    testimonials: false,
+    seo: false
+  });
 
-  /* ===========================
-        STATES
-  =========================== */
+  const toggleCard = (cardId) => {
+    setExpandedCards(prev => ({ ...prev, [cardId]: !prev[cardId] }));
+  };
 
-  const [viewItem, setViewItem] = useState(null);
+  // Toast state
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
-  const [search, setSearch] = useState("");
+  // Search & Filters State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  const [statusFilter, setStatusFilter] = useState("All");
+  // Single Forms State
+  const [heroForm, setHeroForm] = useState(collaborationsPage?.hero || {});
+  const [historyForm, setHistoryForm] = useState(collaborationsPage?.history || {});
+  const [seoForm, setSeoForm] = useState(collaborationsPage?.seo || {});
 
-  const [typeFilter, setTypeFilter] = useState("All");
+  // List editor states
+  const [activeEditorSection, setActiveEditorSection] = useState(null);
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [draftItem, setDraftItem] = useState({});
 
-  const [featuredFilter, setFeaturedFilter] = useState("All");
+  // View modal state
+  const [viewingItem, setViewingItem] = useState(null);
+  const [viewingSection, setViewingSection] = useState(null);
 
-  const [viewMode, setViewMode] = useState("grid");
+  // Delete modal state
+  const [deletingItemId, setDeletingItemId] = useState(null);
+  const [deletingSection, setDeletingSection] = useState(null);
 
-  /* ===========================
-        DATA
-  =========================== */
+  // Media uploading state
+  const [uploadingField, setUploadingField] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [cropTargetField, setCropTargetField] = useState(null);
 
-  const data = Array.isArray(itemsList)
-    ? itemsList
-    : [];
+  const { openMediaManager } = useMediaManager();
+  const simulateMediaUpload = (targetKey, isObjectForm = false, objectSetter = null) => {
+    openMediaManager({
+      onSelect: (url) => {
+        if (activeEditorSection) {
+          setDraftItem(prev => ({ ...prev, [targetKey]: dummyUrl }));
+        } else {
+          setSeoForm(prev => (targetKey in prev || ['ogImage'].includes(targetKey) ? { ...prev, [targetKey]: dummyUrl } : prev));
+        }
+      }
+    });
+  };
 
-  /* ===========================
-        FILTER
-  =========================== */
+  const handleSingleSave = (sectionKey, data) => {
+    updateSection('collaborationsPage', { [sectionKey]: data });
+    showToast(`${sectionKey.toUpperCase()} section parameters updated successfully.`);
+  };
 
-  const filteredData = useMemo(() => {
+  const updateSectionMeta = (secId, key, val) => {
+    const currentSettings = collaborationsPage.sectionSettings || {};
+    const updatedSettings = {
+      ...currentSettings,
+      [secId]: {
+        ...(currentSettings[secId] || { order: 1, status: "Active" }),
+        [key]: val
+      }
+    };
+    updateSection('collaborationsPage', { sectionSettings: updatedSettings });
+  };
 
-    return data.filter((item) => {
+  // Reusable Media Upload Component
+  const renderMediaUpload = (label, value, fieldKey, isOptional = false) => {
+    return (
+      <div className="border border-zinc-900 p-4 rounded bg-zinc-900/10 flex flex-col gap-2 text-left">
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] font-mono text-zinc-555 block uppercase">{label} {isOptional && <span className="text-zinc-650">(Optional)</span>}</span>
+          {value && (
+            <button
+              type="button"
+              onClick={() => {
+                setCropTargetField(fieldKey);
+                setShowCropModal(true);
+              }}
+              className="text-[9px] uppercase tracking-wider text-luxury-gold hover:underline flex items-center gap-1"
+            >
+              <Settings className="w-2.5 h-2.5" /> Crop Image
+            </button>
+          )}
+        </div>
 
-      const matchSearch =
-        item.brandName
-          ?.toLowerCase()
-          .includes(search.toLowerCase()) ||
+        {value ? (
+          <div className="relative w-full h-24 bg-zinc-955 border border-zinc-800 rounded overflow-hidden flex items-center justify-center">
+            <img src={value} className="w-full h-full object-cover" />
+            <div className="absolute bottom-1 right-1 flex items-center gap-1">
+              <button onClick={() => simulateMediaUpload(fieldKey)} className="p-1 bg-black/60 rounded text-luxury-gold hover:text-white" title="Replace Image">
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={() => {
+                if(activeEditorSection) {
+                  setDraftItem(prev => ({...prev, [fieldKey]: ''}));
+                } else {
+                  setSeoForm(prev => ({...prev, [fieldKey]: ''}));
+                }
+              }} className="p-1 hover:bg-zinc-900 rounded text-rose-500" title="Delete">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            onClick={() => simulateMediaUpload(fieldKey)}
+            className="h-24 border border-dashed border-zinc-850 hover:border-luxury-gold/30 rounded flex flex-col items-center justify-center gap-1 text-zinc-655 cursor-pointer transition-all"
+          >
+            {uploadingField === fieldKey ? (
+              <div className="flex flex-col items-center gap-1 animate-pulse">
+                <RefreshCw className="w-4 h-4 animate-spin text-luxury-gold" />
+                <span className="text-[8px] font-mono">{uploadProgress}%</span>
+              </div>
+            ) : (
+              <>
+                <UploadCloud className="w-4 h-4" />
+                <span className="text-[8px] uppercase font-mono tracking-wider">Drag & Drop or Click</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
-        item.campaignName
-          ?.toLowerCase()
-          .includes(search.toLowerCase());
+  // --- REUSABLE LIST MANAGER (WITH SEARCH & FILTERS & MODALS CONNECTED) ---
+  const renderListManager = ({ sectionKey, fields = [], displayColumns = [] }) => {
+    const listData = collaborationsPage[sectionKey] || [];
 
-      const matchStatus =
-        statusFilter === "All"
-          ? true
-          : item.status === statusFilter;
-
-      const matchType =
-        typeFilter === "All"
-          ? true
-          : item.collabType === typeFilter;
-
-      const matchFeatured =
-        featuredFilter === "All"
-          ? true
-          : featuredFilter === "Featured"
-          ? item.featured
-          : !item.featured;
-
-      return (
-        matchSearch &&
-        matchStatus &&
-        matchType &&
-        matchFeatured
+    const filteredList = listData.filter(item => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = displayColumns.some(col =>
+        String(item[col.key] || '').toLowerCase().includes(query)
       );
-
+      const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+      return matchesSearch && matchesStatus;
     });
 
-  }, [
-    data,
-    search,
-    statusFilter,
-    typeFilter,
-    featuredFilter,
-  ]);
+    const isEditing = activeEditorSection === sectionKey;
 
-  /* ===========================
-        DASHBOARD DATA
-  =========================== */
+    const handleSaveItem = () => {
+      let nextList = [];
+      if (editingItemId !== null) {
+        nextList = listData.map(item => String(item.id) === String(editingItemId) ? { ...item, ...draftItem } : item);
+        showToast("Item updated successfully.");
+      } else {
+        const newItem = {
+          ...draftItem,
+          id: `item-${Date.now()}`,
+          status: draftItem.status || 'Active',
+          order: listData.length + 1
+        };
+        nextList = [...listData, newItem];
+        showToast("New item created.");
+      }
+      updateSection('collaborationsPage', { [sectionKey]: nextList });
+      setActiveEditorSection(null);
+      setEditingItemId(null);
+      setDraftItem({});
+    };
 
-  const total = data.length;
+    const handleMoveItem = (index, direction) => {
+      const nextList = [...listData];
+      const target = index + direction;
+      if (target >= 0 && target < nextList.length) {
+        const temp = nextList[index];
+        nextList[index] = nextList[target];
+        nextList[target] = temp;
+        updateSection('collaborationsPage', { [sectionKey]: nextList });
+      }
+    };
 
-  const activeBrands =
-    data.filter(
-      (item) => item.status === "Active"
-    ).length;
+    const handleStartAdd = () => {
+      setActiveEditorSection(sectionKey);
+      setEditingItemId(null);
+      const defaultObj = {};
+      fields.forEach(f => {
+        defaultObj[f.key] = f.type === 'number' ? 0 : f.type === 'switch' ? false : f.type === 'color' ? '#D4AF37' : '';
+      });
+      setDraftItem(defaultObj);
+    };
 
-  const featured =
-    data.filter(
-      (item) => item.featured
-    ).length;
+    const handleStartEdit = (item) => {
+      setActiveEditorSection(sectionKey);
+      setEditingItemId(item.id);
+      setDraftItem({ ...item });
+    };
 
-  const caseStudies =
-    data.filter(
-      (item) => item.challenge
-    ).length;
-
-  /* ===========================
-        RETURN START
-  =========================== */
-
-  return (
-
-    <div className="space-y-8">
-
-      {/* PART 2 STARTS FROM HERE */}
-            {/* ========================= HEADER ========================= */}
-
-      <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-gradient-to-br from-zinc-950 via-black to-zinc-900 p-8">
-
-        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-yellow-500/10 blur-3xl"></div>
-        <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-yellow-500/5 blur-3xl"></div>
-
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-
-          <div>
-
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-yellow-500/20 bg-yellow-500/10">
-
-              <Handshake className="w-4 h-4 text-yellow-400" />
-
-              <span className="text-xs uppercase tracking-[3px] text-yellow-400 font-semibold">
-                Brand Management
-              </span>
-
+    return (
+      <div className="flex flex-col gap-4 text-left">
+        {!isEditing && (
+          <div className="flex flex-col gap-3">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-zinc-900 text-zinc-555 font-mono uppercase text-[9px] tracking-wider">
+                    <th className="py-2 px-3">Order</th>
+                    {displayColumns.map(col => (
+                      <th key={col.key} className="py-2 px-3">{col.label}</th>
+                    ))}
+                    <th className="py-2 px-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredList.map((item, idx) => (
+                    <tr key={item.id || idx} className="border-b border-zinc-900/60 hover:bg-zinc-900/10 text-zinc-300">
+                      <td className="py-2.5 px-3 font-mono">{idx + 1}</td>
+                      {displayColumns.map(col => (
+                        <td key={col.key} className="py-2.5 px-3 max-w-[180px] truncate">
+                          {col.type === 'image' ? (
+                            item[col.key] ? (
+                              <div className="w-8 h-8 rounded border border-zinc-800 bg-zinc-955 flex items-center justify-center overflow-hidden">
+                                <img src={item[col.key]} className="w-full h-full object-cover" />
+                              </div>
+                            ) : '-'
+                          ) : col.type === 'color' ? (
+                            <div className="flex items-center gap-2">
+                               <span className="w-3 h-3 rounded-full border border-zinc-800" style={{backgroundColor: item[col.key] || '#D4AF37'}}></span>
+                               <span>{item[col.key]}</span>
+                            </div>
+                          ) : item[col.key] || '-'}
+                        </td>
+                      ))}
+                      <td className="py-2.5 px-3 text-right flex items-center justify-end gap-1.5 mt-0.5">
+                        <button onClick={() => handleMoveItem(idx, -1)} disabled={idx === 0} className="p-1 hover:bg-zinc-900 rounded disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleMoveItem(idx, 1)} disabled={idx === listData.length - 1} className="p-1 hover:bg-zinc-900 rounded disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => { setViewingItem(item); setViewingSection(sectionKey); }} className="p-1 hover:bg-zinc-900 rounded text-luxury-gold" title="Preview"><Eye className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleStartEdit(item)} className="p-1 hover:bg-zinc-900 rounded text-amber-500" title="Edit"><Edit3 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => { setDeletingItemId(item.id); setDeletingSection(sectionKey); }} className="p-1 hover:bg-zinc-900 rounded text-rose-500" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredList.length === 0 && (
+                    <tr>
+                      <td colSpan={displayColumns.length + 3} className="text-center py-6 text-zinc-655 font-mono italic">No matching records found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-
-            <h1 className="mt-6 text-2xl lg:text-2xl font-serif text-white">
-
-              Brand <span className="text-yellow-400">Collaborations</span>
-
-            </h1>
-
-            <p className="mt-4 max-w-sm text-zinc-400 leading-7">
-
-              Manage brand partnerships, campaigns, featured collaborations,
-              success stories, client testimonials and performance reports
-              from one dashboard.
-
-            </p>
-
+            <div>
+              <Button onClick={handleStartAdd} variant="secondary" size="sm" className="gap-1 text-xs border border-zinc-800 text-luxury-gold">
+                <Plus className="w-3.5 h-3.5" /> <span>Add Row Item</span>
+              </Button>
+            </div>
           </div>
-
-          <div>
-
-            <Button
-              onClick={handleOpenAddForm}
-              className="bg-yellow-400 hover:bg-yellow-300 text-black font-semibold px-5 py-2 rounded-xl"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-
-              Add Collaboration
-
-            </Button>
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* ========================= DASHBOARD ========================= */}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-
-        <DashboardCard
-          title="Total Collaborations"
-          value={total}
-          icon={<Handshake size={24} />}
-        />
-
-        <DashboardCard
-          title="Active Brands"
-          value={activeBrands}
-          icon={<Building2 size={24} />}
-        />
-
-        <DashboardCard
-          title="Featured Brands"
-          value={featured}
-          icon={<Star size={24} />}
-        />
-
-        <DashboardCard
-          title="Case Studies"
-          value={caseStudies}
-          icon={<BarChart3 size={24} />}
-        />
-
-      </div>
-
-      {/* ========================= FILTER BAR ========================= */}
-
-      <div className="rounded-3xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-6">
-
-        <div className="grid lg:grid-cols-6 gap-4">
-
-          {/* Search */}
-
-          <div className="lg:col-span-2 relative">
-
-            <Search className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500" />
-
-            <input
-              type="text"
-              placeholder="Search Brand or Campaign..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-12 rounded-xl bg-zinc-900 border border-zinc-800 pl-12 pr-4 text-white placeholder:text-zinc-500 focus:border-yellow-500 outline-none"
-            />
-
-          </div>
-
-          {/* Status */}
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-12 rounded-xl bg-zinc-900 border border-zinc-800 text-white px-3"
-          >
-
-            <option>All</option>
-            <option>Active</option>
-            <option>Inactive</option>
-
-          </select>
-
-          {/* Type */}
-
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="h-12 rounded-xl bg-zinc-900 border border-zinc-800 text-white px-3"
-          >
-
-            <option>All</option>
-            <option>Campaign</option>
-            <option>Promotion</option>
-            <option>Event</option>
-
-          </select>
-
-          {/* Featured */}
-
-          <select
-            value={featuredFilter}
-            onChange={(e) => setFeaturedFilter(e.target.value)}
-            className="h-12 rounded-xl bg-zinc-900 border border-zinc-800 text-white px-3"
-          >
-
-            <option>All</option>
-            <option>Featured</option>
-            <option>Normal</option>
-
-          </select>
-
-          {/* View Toggle */}
-
-          <div className="grid grid-cols-2 gap-2">
-
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`h-12 rounded-xl flex items-center justify-center transition ${
-                viewMode === "grid"
-                  ? "bg-yellow-400 text-black"
-                  : "bg-zinc-900 text-zinc-400 border border-zinc-800"
-              }`}
-            >
-
-              <LayoutGrid size={20} />
-
-            </button>
-
-            <button
-              onClick={() => setViewMode("table")}
-              className={`h-12 rounded-xl flex items-center justify-center transition ${
-                viewMode === "table"
-                  ? "bg-yellow-400 text-black"
-                  : "bg-zinc-900 text-zinc-400 border border-zinc-800"
-              }`}
-            >
-
-              <Table2 size={20} />
-
-            </button>
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* PART 3 STARTS FROM HERE */}
-      {/* ===================== GRID VIEW ===================== */}
-
-{viewMode === "grid" && (
-
-  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-
-    {filteredData.length === 0 && (
-
-      <div className="col-span-full rounded-3xl border border-zinc-800 bg-zinc-950 p-12 text-center">
-
-        <Handshake className="mx-auto w-14 h-14 text-yellow-400 mb-4" />
-
-        <h3 className="text-2xl text-white font-serif">
-          No Collaboration Found
-        </h3>
-
-        <p className="text-zinc-500 mt-3">
-          Try changing filters or add a new collaboration.
-        </p>
-
-      </div>
-
-    )}
-
-    {filteredData.map((item) => (
-
-      <motion.div
-        key={item.id}
-        whileHover={{ y: -8 }}
-        transition={{ duration: .3 }}
-        className="overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950 hover:border-yellow-500/40 duration-300"
-      >
-
-        {/* Banner */}
-
-        <div className="relative h-52 overflow-hidden">
-
-          <img
-            src={item.bannerImageUrl || item.logoUrl}
-            alt=""
-            className="w-full h-full object-cover hover:scale-110 duration-500"
-          />
-
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent"/>
-
-          <div className="absolute top-4 left-4 flex gap-2">
-
-            {item.featured && (
-
-              <span className="px-3 py-1 rounded-full bg-yellow-400 text-black text-[11px] font-bold">
-
-                Featured
-
-              </span>
-
-            )}
-
-            <span
-              className={`px-3 py-1 rounded-full text-[11px] font-semibold ${
-                item.status === "Active"
-                  ? "bg-green-600 text-white"
-                  : "bg-red-600 text-white"
-              }`}
-            >
-              {item.status}
+        )}
+
+        {isEditing && (
+          <div className="border border-zinc-900 p-4 rounded bg-zinc-900/10 flex flex-col gap-3">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-luxury-gold block border-b border-zinc-900 pb-1.5">
+              {editingItemId !== null ? "Edit Record Item" : "Create New Record"}
             </span>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {fields.map(field => {
+                if (field.type === 'textarea') {
+                  return (
+                    <div key={field.key} className="md:col-span-2">
+                      <Input
+                        label={field.label}
+                        textarea
+                        rows={3}
+                        value={draftItem[field.key] || ''}
+                        onChange={e => setDraftItem({ ...draftItem, [field.key]: e.target.value })}
+                      />
+                    </div>
+                  );
+                }
+                if (field.type === 'upload') {
+                  return (
+                    <div key={field.key}>
+                      {renderMediaUpload(field.label, draftItem[field.key], field.key, field.optional)}
+                    </div>
+                  );
+                }
+                if (field.type === 'switch') {
+                  return (
+                    <div key={field.key} className="p-3 bg-zinc-900/30 border border-zinc-900 rounded flex items-center justify-between">
+                      <span className="text-xs font-semibold text-zinc-400">{field.label}</span>
+                      <Switch checked={draftItem[field.key] || false} onChange={val => setDraftItem({ ...draftItem, [field.key]: val })} />
+                    </div>
+                  );
+                }
+                if (field.type === 'color') {
+                  return (
+                     <div key={field.key} className="flex flex-col gap-1 text-left">
+                        <label className="text-xs text-zinc-400 font-semibold">{field.label}</label>
+                        <div className="flex gap-2 items-center">
+                            <input 
+                                type="color" 
+                                value={draftItem[field.key] || '#D4AF37'} 
+                                onChange={e => setDraftItem({ ...draftItem, [field.key]: e.target.value })}
+                                className="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0"
+                            />
+                            <Input
+                                value={draftItem[field.key] || ''}
+                                onChange={e => setDraftItem({ ...draftItem, [field.key]: e.target.value })}
+                                placeholder="#FFFFFF"
+                            />
+                        </div>
+                     </div>
+                  );
+                }
+                return (
+                  <Input
+                    key={field.key}
+                    label={field.label}
+                    type={field.type || 'text'}
+                    value={draftItem[field.key] || ''}
+                    onChange={e => setDraftItem({ ...draftItem, [field.key]: e.target.value })}
+                  />
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-zinc-900/60 pt-2.5">
+              <button onClick={() => { setActiveEditorSection(null); setEditingItemId(null); setDraftItem({}); }} className="px-3 py-1.5 text-xs text-zinc-555 hover:text-white">Cancel</button>
+              <button onClick={handleSaveItem} className="px-4 py-1.5 bg-luxury-gold text-black font-bold text-xs rounded">Save Record</button>
+            </div>
           </div>
+        )}
+      </div>
+    );
+  };
 
+  // Fixed 9 segments definitions
+  const sectionsList = [
+    { id: "hero", label: "Hero Settings", icon: LayoutGrid },
+    { id: "brandCarousel", label: "Brand Logo Carousel", icon: Star },
+    { id: "partners", label: "Partner Cards", icon: Users },
+    { id: "metrics", label: "Success Metrics", icon: BarChart },
+    { id: "campaigns", label: "Case Studies / Campaigns", icon: FileText },
+    { id: "history", label: "Collaboration History", icon: Clock },
+    { id: "process", label: "Partnership Process", icon: Workflow },
+    { id: "testimonials", label: "Testimonials", icon: MessageSquare },
+    { id: "seo", label: "SEO Metadata", icon: Globe }
+  ];
+
+  const sectionSettings = collaborationsPage.sectionSettings || {};
+  const sortedSections = [...sectionsList].sort((a, b) => {
+    const orderA = sectionSettings[a.id]?.order ?? 99;
+    const orderB = sectionSettings[b.id]?.order ?? 99;
+    return orderA - orderB;
+  });
+
+  return (
+    <div className="flex flex-col gap-6 text-left relative">
+
+      {toast && (
+        <div className="fixed top-5 right-5 z-[100] px-4 py-3 rounded-md shadow-lg border flex items-center gap-2.5 bg-zinc-955 border-luxury-gold/30 text-white font-sans">
+          <AlertCircle className="w-4 h-4 text-luxury-gold" />
+          <span className="text-xs font-semibold">{toast.message}</span>
         </div>
+      )}
 
-        {/* Body */}
-
-        <div className="p-6">
-
-          <div className="flex items-center gap-4">
-
-            <img
-              src={item.logoUrl}
-              className="w-16 h-16 rounded-full border border-zinc-700 object-cover"
-            />
-
-            <div>
-
-              <h3 className="text-xl text-white font-semibold">
-                {item.brandName}
+      {showCropModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
+          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-xl w-[450px] text-zinc-100 flex flex-col gap-4 text-left shadow-2xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+              <h3 className="font-serif text-sm font-semibold tracking-wider uppercase text-luxury-gold flex items-center gap-1.5">
+                <Settings className="w-4 h-4 animate-spin text-luxury-gold" /> Crop Vector Bounds
               </h3>
-
-              <p className="text-zinc-500 text-sm">
-                {item.campaignName}
-              </p>
-
+              <button onClick={() => setShowCropModal(false)} className="text-zinc-500 hover:text-white"><X className="w-4 h-4" /></button>
             </div>
-
-          </div>
-
-          <p className="mt-5 text-sm text-zinc-400 leading-7 line-clamp-3">
-
-            {item.shortDesc}
-
-          </p>
-
-          {/* Metrics */}
-
-          <div className="grid grid-cols-3 gap-3 mt-6">
-
-            <div className="rounded-xl bg-zinc-900 p-3 text-center">
-
-              <p className="text-[11px] text-zinc-500">
-                Reach
-              </p>
-
-              <h4 className="text-white font-bold mt-1">
-                {item.reachMetric}
-              </h4>
-
+            <div className="w-full h-40 border border-dashed border-luxury-gold/30 bg-zinc-955 rounded flex items-center justify-center relative overflow-hidden">
+              <div className="absolute inset-4 border border-dashed border-white/10 flex items-center justify-center">
+                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest text-center">1:1 Crop Canvas</span>
+              </div>
             </div>
-
-            <div className="rounded-xl bg-zinc-900 p-3 text-center">
-
-              <p className="text-[11px] text-zinc-500">
-                Engagement
-              </p>
-
-              <h4 className="text-white font-bold mt-1">
-                {item.engagementMetric}
-              </h4>
-
-            </div>
-
-            <div className="rounded-xl bg-zinc-900 p-3 text-center">
-
-              <p className="text-[11px] text-zinc-500">
-                Conversion
-              </p>
-
-              <h4 className="text-white font-bold mt-1">
-                {item.conversionsMetric}
-              </h4>
-
-            </div>
-
-          </div>
-
-          {/* Services */}
-
-          <div className="flex flex-wrap gap-2 mt-5">
-
-            {(item.services || []).map((service, index) => (
-
-              <span
-                key={index}
-                className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-xs text-zinc-300"
+            <div className="flex justify-end gap-2 border-t border-zinc-850 pt-3">
+              <button onClick={() => setShowCropModal(false)} className="px-3 py-1.5 text-xs text-zinc-555 hover:text-white">Cancel</button>
+              <button
+                onClick={() => { setShowCropModal(false); showToast("Image cropped successfully."); }}
+                className="px-4 py-1.5 bg-luxury-gold text-black font-bold text-xs rounded shadow-gold-glow"
               >
-                {service}
-              </span>
-
-            ))}
-
+                Apply Crop Grid
+              </button>
+            </div>
           </div>
-
-          {/* Website */}
-
-          {item.websiteUrl && (
-
-            <a
-              href={item.websiteUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 mt-5 text-yellow-400 text-sm"
-            >
-
-              <Globe size={16} />
-
-              Visit Website
-
-            </a>
-
-          )}
-
-          {/* Buttons */}
-
-          <div className="grid grid-cols-3 gap-3 mt-7">
-
-            <Button
-              onClick={() => setViewItem(item)}
-              className="bg-zinc-900 border border-zinc-700"
-            >
-              <Eye size={18}/>
-            </Button>
-
-            <Button
-              onClick={() => {
-                setEditingItem(item);
-                setShowFormModal(true);
-              }}
-              className="bg-zinc-900 border border-zinc-700"
-            >
-              <Edit2 size={18}/>
-            </Button>
-
-            <Button
-              onClick={() => setDeleteId(item.id)}
-              className="bg-red-900/20 border border-red-700 text-red-400"
-            >
-              <Trash2 size={18}/>
-            </Button>
-
-          </div>
-
         </div>
-
-      </motion.div>
-
-    ))}
-
-  </div>
-
-)}
-{/* ===================== TABLE VIEW ===================== */}
-
-{viewMode === "table" && (
-
-<div className="overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950">
-
-<div className="overflow-x-auto">
-
-<table className="w-full">
-
-<thead className="bg-zinc-900 border-b border-zinc-800">
-
-<tr className="text-left text-xs uppercase tracking-widest text-zinc-500">
-
-<th className="px-6 py-5">Brand</th>
-
-<th>Campaign</th>
-
-<th>Type</th>
-
-<th>Date</th>
-
-<th>Status</th>
-
-<th>Featured</th>
-
-<th className="text-center">Actions</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-{filteredData.length === 0 ? (
-
-<tr>
-
-<td
-colSpan={7}
-className="text-center py-16 text-zinc-500"
->
-
-No Collaboration Found
-
-</td>
-
-</tr>
-
-) : (
-
-filteredData.map((item) => (
-
-<tr
-key={item.id}
-className="border-b border-zinc-800 hover:bg-zinc-900/60 transition"
->
-
-<td className="px-6 py-5">
-
-<div className="flex items-center gap-4">
-
-<img
-src={item.logoUrl}
-alt=""
-className="w-14 h-14 rounded-full border border-zinc-700 object-cover"
-/>
-
-<div>
-
-<h4 className="text-white font-semibold">
-
-{item.brandName}
-
-</h4>
-
-<p className="text-zinc-500 text-xs">
-
-{item.websiteUrl}
-
-</p>
-
-</div>
-
-</div>
-
-</td>
-
-<td className="text-zinc-300">
-
-{item.campaignName}
-
-</td>
-
-<td>
-
-<span className="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-700 text-xs text-yellow-400">
-
-{item.collabType}
-
-</span>
-
-</td>
-
-<td className="text-zinc-400">
-
-<div className="flex items-center gap-2">
-
-<Calendar size={14}/>
-
-{item.collabDate}
-
-</div>
-
-</td>
-
-<td>
-
-<span
-className={`px-3 py-1 rounded-full text-xs font-semibold ${
-item.status==="Active"
-? "bg-green-600 text-white"
-: "bg-red-600 text-white"
-}`}
->
-
-{item.status}
-
-</span>
-
-</td>
-
-<td>
-
-{item.featured ? (
-
-<CheckCircle2
-size={20}
-className="text-yellow-400"
-/>
-
-) : (
-
-<span className="text-zinc-600">
-—
-</span>
-
-)}
-
-</td>
-
-<td>
-
-<div className="flex justify-center gap-2">
-
-<Button
-onClick={()=>setViewItem(item)}
-className="bg-zinc-900 border border-zinc-700"
->
-
-<Eye size={16}/>
-
-</Button>
-
-<Button
-onClick={()=>{
-setEditingItem(item);
-setShowFormModal(true);
-}}
-className="bg-zinc-900 border border-zinc-700"
->
-
-<Edit2 size={16}/>
-
-</Button>
-
-<Button
-onClick={()=>setDeleteId(item.id)}
-className="bg-red-900/20 border border-red-700 text-red-400"
->
-
-<Trash2 size={16}/>
-
-</Button>
-
-</div>
-
-</td>
-
-</tr>
-
-))
-
-)}
-
-</tbody>
-
-</table>
-
-</div>
-
-</div>
-
-)}
-{/* ===================== VIEW MODAL ===================== */}
-
-<AnimatePresence>
-
-  {viewItem && (
-
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg overflow-y-auto"
-    >
-
-      <motion.div
-        initial={{ y: 40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 40, opacity: 0 }}
-        transition={{ duration: .35 }}
-        className="max-w-7xl mx-auto p-6 lg:p-10"
+      )}
+
+      <ConfirmDialog
+        isOpen={deletingItemId !== null}
+        onClose={() => { setDeletingItemId(null); setDeletingSection(null); }}
+        title="Delete Record"
+        message="Are you sure you want to delete this record? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={() => {
+          deleteNestedItem("collaborationsPage", deletingSection, deletingItemId);
+          setDeletingItemId(null);
+          setDeletingSection(null);
+          showToast("Record deleted successfully.");
+        }}
+      />
+
+      <Dialog
+        isOpen={viewingItem !== null}
+        onClose={() => { setViewingItem(null); setViewingSection(null); }}
+        title="Record Details Preview"
+        size="md"
       >
+        {viewingItem && (
+          <div className="space-y-4 text-xs text-left">
+             <div className="grid grid-cols-2 gap-4 border-b border-zinc-800 pb-3">
+                {Object.keys(viewingItem).filter(k => k !== 'id' && !k.toLowerCase().includes('image') && !k.toLowerCase().includes('logo') && !k.toLowerCase().includes('avatar') && !k.toLowerCase().includes('url')).map((key, idx) => (
+                    <div key={idx}>
+                        <span className="text-[10px] text-zinc-500 block uppercase font-mono">{key}</span>
+                        <span className="text-zinc-200 font-bold">{viewingItem[key] || '-'}</span>
+                    </div>
+                ))}
+             </div>
+             
+             {/* Render images if present */}
+             {Object.keys(viewingItem).filter(k => k.toLowerCase().includes('image') || k.toLowerCase().includes('logo') || k.toLowerCase().includes('avatar')).map((key, idx) => (
+                <div key={idx}>
+                    <span className="text-[10px] text-zinc-500 block uppercase font-mono mb-1">{key}</span>
+                    {viewingItem[key] ? (
+                        <div className="w-16 h-16 rounded border border-zinc-800 bg-zinc-950 flex items-center justify-center overflow-hidden">
+                            <img src={viewingItem[key]} className="w-full h-full object-cover" />
+                        </div>
+                    ) : (
+                        <span className="text-zinc-500 italic">No Media</span>
+                    )}
+                </div>
+             ))}
 
-        {/* Close */}
-
-        <div className="flex justify-end mb-5">
-
-          <button
-            onClick={() => setViewItem(null)}
-            className="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-700 hover:border-yellow-400 duration-300 flex items-center justify-center"
-          >
-
-            <X className="w-5 h-5 text-white" />
-
-          </button>
-
-        </div>
-
-        {/* Banner */}
-
-        <div className="relative rounded-3xl overflow-hidden border border-zinc-800">
-
-          <img
-            src={viewItem.bannerImageUrl || viewItem.logoUrl}
-            alt=""
-            className="w-full h-[420px] object-cover"
-          />
-
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-
-          <div className="absolute bottom-8 left-8 flex items-center gap-5">
-
-            <img
-              src={viewItem.logoUrl}
-              alt=""
-              className="w-24 h-24 rounded-full border-4 border-white object-cover"
-            />
-
-            <div>
-
-              <h1 className="text-5xl font-serif text-white">
-
-                {viewItem.brandName}
-
-              </h1>
-
-              <p className="text-zinc-300 mt-2">
-
-                {viewItem.campaignName}
-
-              </p>
-
-              <div className="flex gap-3 mt-4">
-
-                <span className="px-4 py-1 rounded-full bg-yellow-400 text-black font-semibold">
-
-                  {viewItem.collabType}
-
-                </span>
-
-                <span
-                  className={`px-4 py-1 rounded-full ${
-                    viewItem.status === "Active"
-                      ? "bg-green-600"
-                      : "bg-red-600"
-                  }`}
-                >
-
-                  {viewItem.status}
-
-                </span>
-
-              </div>
-
+            <div className="flex justify-end pt-3 border-t border-zinc-800 mt-4">
+              <Button variant="secondary" onClick={() => { setViewingItem(null); setViewingSection(null); }}>
+                Close Preview
+              </Button>
             </div>
-
           </div>
+        )}
+      </Dialog>
 
+      {/* DASHBOARD STATISTICS CARDS */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-xl flex flex-col items-center justify-center gap-1 shadow-lg shadow-black/20">
+            <span className="text-2xl font-serif text-luxury-gold">{(collaborationsPage.partners || []).length}</span>
+            <span className="text-[10px] uppercase font-mono text-zinc-400">Total Partners</span>
         </div>
-
-        {/* Overview */}
-
-        <div className="grid lg:grid-cols-3 gap-6 mt-8">
-
-          <div className="lg:col-span-2 rounded-3xl bg-zinc-950 border border-zinc-800 p-8">
-
-            <h2 className="text-2xl font-serif text-white mb-5">
-
-              Collaboration Overview
-
-            </h2>
-
-            <p className="text-zinc-400 leading-8">
-
-              {viewItem.shortDesc}
-
-            </p>
-
-          </div>
-
-          <div className="rounded-3xl bg-zinc-950 border border-zinc-800 p-8">
-
-            <h3 className="text-white font-semibold mb-6">
-
-              Quick Details
-
-            </h3>
-
-            <div className="space-y-5">
-
-              <div className="flex justify-between">
-
-                <span className="text-zinc-500">
-                  Campaign
-                </span>
-
-                <span className="text-white">
-                  {viewItem.campaignName}
-                </span>
-
-              </div>
-
-              <div className="flex justify-between">
-
-                <span className="text-zinc-500">
-                  Date
-                </span>
-
-                <span className="text-white">
-                  {viewItem.collabDate}
-                </span>
-
-              </div>
-
-              <div className="flex justify-between">
-
-                <span className="text-zinc-500">
-                  Website
-                </span>
-
-                <a
-                  href={viewItem.websiteUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-yellow-400"
-                >
-
-                  Visit
-
-                </a>
-
-              </div>
-
-            </div>
-
-          </div>
-
+        <div className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-xl flex flex-col items-center justify-center gap-1 shadow-lg shadow-black/20">
+            <span className="text-2xl font-serif text-luxury-gold">{(collaborationsPage.campaigns || []).length}</span>
+            <span className="text-[10px] uppercase font-mono text-zinc-400">Total Campaigns</span>
         </div>
-                {/* ================= SUCCESS METRICS ================= */}
-
-        <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6 mt-8">
-
-          <div className="rounded-3xl bg-zinc-950 border border-zinc-800 p-6">
-            <p className="text-xs uppercase tracking-widest text-zinc-500">
-              Reach
-            </p>
-            <h2 className="text-3xl font-bold text-white mt-3">
-              {viewItem.reachMetric || "0"}
-            </h2>
-          </div>
-
-          <div className="rounded-3xl bg-zinc-950 border border-zinc-800 p-6">
-            <p className="text-xs uppercase tracking-widest text-zinc-500">
-              Impressions
-            </p>
-            <h2 className="text-3xl font-bold text-white mt-3">
-              {viewItem.impressionsMetric || "0"}
-            </h2>
-          </div>
-
-          <div className="rounded-3xl bg-zinc-950 border border-zinc-800 p-6">
-            <p className="text-xs uppercase tracking-widest text-zinc-500">
-              Engagement
-            </p>
-            <h2 className="text-3xl font-bold text-white mt-3">
-              {viewItem.engagementMetric || "0"}
-            </h2>
-          </div>
-
-          <div className="rounded-3xl bg-zinc-950 border border-zinc-800 p-6">
-            <p className="text-xs uppercase tracking-widest text-zinc-500">
-              Conversion
-            </p>
-            <h2 className="text-3xl font-bold text-white mt-3">
-              {viewItem.conversionsMetric || "0"}
-            </h2>
-          </div>
-
+        <div className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-xl flex flex-col items-center justify-center gap-1 shadow-lg shadow-black/20">
+            <span className="text-2xl font-serif text-luxury-gold">{(collaborationsPage.testimonials || []).length}</span>
+            <span className="text-[10px] uppercase font-mono text-zinc-400">Testimonials</span>
         </div>
-
-        {/* ================= CASE STUDY ================= */}
-
-        <div className="grid lg:grid-cols-3 gap-6 mt-8">
-
-          <div className="rounded-3xl bg-zinc-950 border border-zinc-800 p-6">
-
-            <h3 className="text-yellow-400 font-semibold mb-4">
-              Challenge
-            </h3>
-
-            <p className="text-zinc-400 leading-7">
-              {viewItem.challenge || "-"}
-            </p>
-
-          </div>
-
-          <div className="rounded-3xl bg-zinc-950 border border-zinc-800 p-6">
-
-            <h3 className="text-yellow-400 font-semibold mb-4">
-              Solution
-            </h3>
-
-            <p className="text-zinc-400 leading-7">
-              {viewItem.solution || "-"}
-            </p>
-
-          </div>
-
-          <div className="rounded-3xl bg-zinc-950 border border-zinc-800 p-6">
-
-            <h3 className="text-yellow-400 font-semibold mb-4">
-              Result
-            </h3>
-
-            <p className="text-zinc-400 leading-7">
-              {viewItem.result || "-"}
-            </p>
-
-          </div>
-
+        <div className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-xl flex flex-col items-center justify-center gap-1 shadow-lg shadow-black/20">
+            <span className="text-2xl font-serif text-luxury-gold">{Object.keys(sectionSettings).filter(k => sectionSettings[k].status === 'Active').length || sortedSections.length}</span>
+            <span className="text-[10px] uppercase font-mono text-zinc-400">Active Sections</span>
         </div>
+      </div>
 
-        {/* ================= TESTIMONIAL ================= */}
-
-        <div className="mt-8 rounded-3xl border border-zinc-800 bg-zinc-950 p-8">
-
-          <h2 className="text-2xl font-serif text-white mb-6">
-            Client Testimonial
-          </h2>
-
-          <p className="italic text-zinc-300 text-lg leading-8">
-            "{viewItem.testimonialContent}"
+      <div className="border-b border-zinc-800/80 pb-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4 mt-4">
+        <div>
+          <h1 className="font-serif text-2xl font-medium tracking-wide text-zinc-100 flex items-center gap-2">
+            <Briefcase className="w-5 h-5 text-luxury-gold" />
+            Brand Collaborations CMS
+          </h1>
+          <p className="text-xs text-zinc-500 mt-1">
+            Configure partner networks, successful campaigns, historical milestones, and brand strategy processes.
           </p>
-
-          <div className="mt-6">
-
-            <h4 className="text-white font-semibold">
-              {viewItem.clientName}
-            </h4>
-
-            <p className="text-zinc-500">
-              {viewItem.designation}
-            </p>
-
-          </div>
-
         </div>
 
-        {/* ================= GALLERY ================= */}
-
-        {(viewItem.galleryImages || []).length > 0 && (
-
-          <div className="mt-8">
-
-            <h2 className="text-2xl font-serif text-white mb-6">
-              Gallery
-            </h2>
-
-            <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">
-
-              {viewItem.galleryImages.map((img, index) => (
-
-                <img
-                  key={index}
-                  src={img}
-                  alt=""
-                  className="rounded-2xl border border-zinc-800 h-60 w-full object-cover hover:scale-105 duration-300"
-                />
-
-              ))}
-
-            </div>
-
-          </div>
-
-        )}
-                {/* ================= CAMPAIGN VIDEO ================= */}
-
-        {viewItem.videoUrl && (
-
-          <div className="mt-10 rounded-3xl border border-zinc-800 bg-zinc-950 p-8">
-
-            <h2 className="text-2xl font-serif text-white mb-6">
-              Campaign Video
-            </h2>
-
-            <div className="aspect-video rounded-2xl overflow-hidden border border-zinc-800">
-
-              <iframe
-                src={viewItem.videoUrl}
-                title="Campaign Video"
-                className="w-full h-full"
-                allowFullScreen
-              />
-
-            </div>
-
-          </div>
-
-        )}
-
-        {/* ================= SERVICES ================= */}
-
-        {(viewItem.services || []).length > 0 && (
-
-          <div className="mt-10 rounded-3xl border border-zinc-800 bg-zinc-950 p-8">
-
-            <h2 className="text-2xl font-serif text-white mb-6">
-              Services Provided
-            </h2>
-
-            <div className="flex flex-wrap gap-3">
-
-              {viewItem.services.map((service, index) => (
-
-                <span
-                  key={index}
-                  className="px-4 py-2 rounded-full bg-zinc-900 border border-zinc-700 text-sm text-zinc-300"
-                >
-                  {service}
-                </span>
-
-              ))}
-
-            </div>
-
-          </div>
-
-        )}
-
-        {/* ================= SOCIAL LINKS ================= */}
-
-        <div className="grid md:grid-cols-2 gap-6 mt-8">
-
-          <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-7">
-
-            <h3 className="text-xl font-semibold text-white mb-4">
-              Website
-            </h3>
-
-            <a
-              href={viewItem.websiteUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-yellow-400 break-all hover:underline"
-            >
-              {viewItem.websiteUrl || "-"}
-            </a>
-
-          </div>
-
-          <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-7">
-
-            <h3 className="text-xl font-semibold text-white mb-4">
-              Social Media
-            </h3>
-
-            <a
-              href={viewItem.socialMediaUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-yellow-400 break-all hover:underline"
-            >
-              {viewItem.socialMediaUrl || "-"}
-            </a>
-
-          </div>
-
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button onClick={() => { setExpandedCards(prev => ({...prev, partners: true})); setActiveEditorSection('partners'); setEditingItemId(null); setDraftItem({}); document.getElementById('partners')?.scrollIntoView(); }} variant="primary" size="sm" className="bg-luxury-gold border-luxury-gold text-black font-bold">
+             <Plus className="w-4 h-4 mr-1.5" /> Add Collab
+          </Button>
+          <Button onClick={() => showToast("💾 Collaborations Page Draft Saved Successfully!")} variant="secondary" size="sm" className="gap-1.5 text-xs border border-zinc-800 text-amber-500/90">
+            <Save className="w-3.5 h-3.5" /> <span>Save Draft</span>
+          </Button>
+          <Button onClick={() => { if (window.confirm("Reset unsaved changes?")) window.location.reload(); }} variant="secondary" size="sm" className="gap-1.5 text-xs border border-zinc-800 text-zinc-400 hover:text-rose-400">
+            <RefreshCw className="w-3.5 h-3.5" /> <span>Reset</span>
+          </Button>
+          <Button onClick={() => showToast("🚀 Public production server updated successfully. Page is Live!")} variant="primary" size="sm" className="gap-1.5 text-xs bg-gradient-to-r from-luxury-gold to-luxury-darkgold text-black font-bold shadow-gold-glow">
+            <span>Publish Live</span>
+          </Button>
         </div>
+      </div>
 
-        {/* ================= PARTNERSHIP TIMELINE ================= */}
+      <div className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/20 flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-5xl">
+        <div className="relative flex-1 min-w-[280px]">
+          <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
+          <input
+            type="text"
+            placeholder="Search records across lists..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full bg-zinc-900/60 border border-zinc-850 rounded-md pl-9 pr-4 py-2 text-xs text-zinc-200 focus:border-luxury-gold/30 outline-none"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase">Status:</span>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="bg-zinc-900 border border-zinc-800 rounded px-2 py-1 text-xs text-zinc-300 outline-none"
+            >
+              <option value="all">All</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+          {(searchQuery || statusFilter !== 'all') && (
+            <button
+              onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}
+              className="px-2.5 py-1 text-xs bg-zinc-900 hover:bg-zinc-800 text-zinc-400 rounded"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
 
-        <div className="mt-10 rounded-3xl border border-zinc-800 bg-zinc-950 p-8">
+      <div className="grid grid-cols-1 gap-4 max-w-5xl pb-20">
+        {sortedSections.map((sec, idx) => {
+          const SectionIcon = sec.icon;
+          const isCardOpen = expandedCards[sec.id];
+          const sectionMeta = sectionSettings[sec.id] || { order: idx + 1, status: "Active" };
+          const isActive = sectionMeta.status === "Active";
 
-          <h2 className="text-2xl font-serif text-white mb-8">
-            Partnership Journey
-          </h2>
+          return (
+            <Card
+              id={sec.id}
+              key={sec.id}
+              className={`border transition-all duration-300 p-0 overflow-hidden bg-zinc-955/20 ${isCardOpen ? 'border-zinc-800/80' : 'border-zinc-800/40'}`}
+              title={
+                <div className="flex items-center justify-between w-full py-4 px-5 select-none bg-zinc-955/20 cursor-pointer" onClick={() => toggleCard(sec.id)}>
+                  <div className="flex items-center gap-3 flex-1">
+                    <SectionIcon className={`w-4 h-4 ${isCardOpen ? 'text-luxury-gold' : 'text-zinc-500'}`} />
+                    <span className="font-serif text-xs font-bold uppercase tracking-wider text-zinc-200">
+                      {idx + 1}. {sec.label}
+                    </span>
+                    {!isActive && <Badge variant="secondary" className="scale-90 text-[9px] bg-zinc-900 border-zinc-800 text-zinc-500">Inactive</Badge>}
+                  </div>
+                  <div className="flex items-center pl-4" onClick={(e) => e.stopPropagation()}>
+                    <button onClick={() => toggleCard(sec.id)} className="text-zinc-500 hover:text-zinc-300 p-1">
+                      {isCardOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              }
+            >
+              {isCardOpen && (
+                <div className="p-5 border-t border-zinc-800/80 bg-zinc-955/20 flex flex-col gap-4 animate-fadeIn">
+                  
+                  <div className="p-3 mb-2 rounded border border-zinc-900 bg-zinc-900/10 flex flex-col md:flex-row md:items-center justify-between gap-3 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-zinc-405">Display Order:</span>
+                      <input
+                        type="number"
+                        value={sectionMeta.order}
+                        onChange={e => updateSectionMeta(sec.id, 'order', parseInt(e.target.value) || 1)}
+                        className="w-12 bg-zinc-900 border border-zinc-850 rounded px-2 py-1 text-center text-xs font-semibold text-zinc-200 focus:border-luxury-gold/40 outline-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-zinc-405">Section Status:</span>
+                        <select 
+                            value={sectionMeta.status}
+                            onChange={e => updateSectionMeta(sec.id, 'status', e.target.value)}
+                            className="bg-zinc-900 border border-zinc-850 rounded px-2 py-1 text-xs text-zinc-300 focus:border-luxury-gold/40 outline-none"
+                        >
+                            <option value="Active">Active (Visible)</option>
+                            <option value="Inactive">Inactive (Hidden)</option>
+                        </select>
+                    </div>
+                  </div>
 
-          <div className="grid md:grid-cols-4 gap-5">
+                  {sec.id === 'hero' && (
+                    <div className="flex flex-col gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input label="Eyebrow Text" value={heroForm.eyebrowText || ''} onChange={e => setHeroForm({ ...heroForm, eyebrowText: e.target.value })} />
+                        <Input label="Main Title" value={heroForm.title || ''} onChange={e => setHeroForm({ ...heroForm, title: e.target.value })} />
+                        <Input label="Highlighted Word" value={heroForm.highlightedTitle || ''} onChange={e => setHeroForm({ ...heroForm, highlightedTitle: e.target.value })} />
+                        <div className="md:col-span-2">
+                            <Input textarea rows={3} label="Description" value={heroForm.description || ''} onChange={e => setHeroForm({ ...heroForm, description: e.target.value })} />
+                        </div>
+                      </div>
+                      <div className="flex justify-end pt-3 border-t border-zinc-900/60">
+                        <Button onClick={() => handleSingleSave('hero', heroForm)} variant="primary" size="sm" className="bg-luxury-gold text-black">Save Hero</Button>
+                      </div>
+                    </div>
+                  )}
 
-            {[
-              "Discussion",
-              "Planning",
-              "Execution",
-              "Results",
-            ].map((step, index) => (
+                  {sec.id === 'history' && (
+                    <div className="flex flex-col gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input label="Eyebrow Text" value={historyForm.eyebrow || ''} onChange={e => setHistoryForm({ ...historyForm, eyebrow: e.target.value })} />
+                        <Input label="Main Title" value={historyForm.title || ''} onChange={e => setHistoryForm({ ...historyForm, title: e.target.value })} />
+                        <Input label="Highlighted Word" value={historyForm.highlightedTitle || ''} onChange={e => setHistoryForm({ ...historyForm, highlightedTitle: e.target.value })} />
+                        <div className="md:col-span-2">
+                            <Input textarea rows={3} label="Main Description" value={historyForm.description || ''} onChange={e => setHistoryForm({ ...historyForm, description: e.target.value })} />
+                        </div>
+                        <Input label="Card Title" value={historyForm.cardTitle || ''} onChange={e => setHistoryForm({ ...historyForm, cardTitle: e.target.value })} />
+                        <Input label="Card Description" value={historyForm.cardDescription || ''} onChange={e => setHistoryForm({ ...historyForm, cardDescription: e.target.value })} />
+                      </div>
+                      <div className="flex justify-end pt-3 border-t border-zinc-900/60">
+                        <Button onClick={() => handleSingleSave('history', historyForm)} variant="primary" size="sm" className="bg-luxury-gold text-black">Save History Section</Button>
+                      </div>
+                    </div>
+                  )}
 
-              <div
-                key={index}
-                className="rounded-2xl bg-zinc-900 border border-zinc-800 p-6 text-center"
-              >
+                  {sec.id === 'brandCarousel' && renderListManager({
+                    sectionKey: 'brandCarousel',
+                    displayColumns: [
+                      { key: 'brandName', label: 'Brand Name' },
+                      { key: 'logoImage', label: 'Logo', type: 'image' }
+                    ],
+                    fields: [
+                      { key: 'brandName', label: 'Brand Name', type: 'text' },
+                      { key: 'logoImage', label: 'Brand Logo Image', type: 'upload' },
+                      { key: 'status', label: 'Active Status', type: 'switch' }
+                    ]
+                  })}
 
-                <div className="w-14 h-14 rounded-full bg-yellow-400 text-black font-bold flex items-center justify-center mx-auto mb-4">
+                  {sec.id === 'partners' && renderListManager({
+                    sectionKey: 'partners',
+                    displayColumns: [
+                      { key: 'name', label: 'Partner Name' },
+                      { key: 'type', label: 'Type' },
+                      { key: 'logo', label: 'Logo', type: 'image' }
+                    ],
+                    fields: [
+                      { key: 'name', label: 'Partner Name', type: 'text' },
+                      { key: 'type', label: 'Industry Type', type: 'text' },
+                      { key: 'featuredWork', label: 'Featured Work / Project', type: 'text' },
+                      { key: 'description', label: 'Description', type: 'textarea' },
+                      { key: 'accentColor', label: 'Accent Color', type: 'color' },
+                      { key: 'logo', label: 'Partner Logo', type: 'upload' },
+                      { key: 'status', label: 'Active Status', type: 'switch' }
+                    ]
+                  })}
 
-                  {index + 1}
+                  {sec.id === 'metrics' && renderListManager({
+                    sectionKey: 'metrics',
+                    displayColumns: [
+                      { key: 'value', label: 'Metric Value' },
+                      { key: 'label', label: 'Metric Label' }
+                    ],
+                    fields: [
+                      { key: 'value', label: 'Metric Value (e.g. 50+)', type: 'text' },
+                      { key: 'label', label: 'Metric Label', type: 'text' },
+                      { key: 'status', label: 'Active Status', type: 'switch' }
+                    ]
+                  })}
+
+                  {sec.id === 'campaigns' && renderListManager({
+                    sectionKey: 'campaigns',
+                    displayColumns: [
+                      { key: 'title', label: 'Campaign Title' },
+                      { key: 'image', label: 'Cover', type: 'image' }
+                    ],
+                    fields: [
+                      { key: 'title', label: 'Campaign Title', type: 'text' },
+                      { key: 'description', label: 'Description', type: 'textarea' },
+                      { key: 'buttonText', label: 'Button Text', type: 'text' },
+                      { key: 'buttonLink', label: 'Button URL', type: 'text' },
+                      { key: 'accentColor', label: 'Accent Color', type: 'color' },
+                      { key: 'image', label: 'Campaign Cover Image', type: 'upload' },
+                      { key: 'status', label: 'Active Status', type: 'switch' }
+                    ]
+                  })}
+
+                  {sec.id === 'process' && renderListManager({
+                    sectionKey: 'process',
+                    displayColumns: [
+                      { key: 'stepNumber', label: 'Step' },
+                      { key: 'title', label: 'Title' }
+                    ],
+                    fields: [
+                      { key: 'stepNumber', label: 'Step Number (e.g. 01)', type: 'text' },
+                      { key: 'title', label: 'Step Title', type: 'text' },
+                      { key: 'description', label: 'Step Description', type: 'textarea' },
+                      { key: 'status', label: 'Active Status', type: 'switch' }
+                    ]
+                  })}
+
+                  {sec.id === 'testimonials' && renderListManager({
+                    sectionKey: 'testimonials',
+                    displayColumns: [
+                      { key: 'personName', label: 'Person' },
+                      { key: 'company', label: 'Company' },
+                      { key: 'avatar', label: 'Avatar', type: 'image' }
+                    ],
+                    fields: [
+                      { key: 'personName', label: 'Person Name', type: 'text' },
+                      { key: 'designation', label: 'Designation / Role', type: 'text' },
+                      { key: 'company', label: 'Company Name', type: 'text' },
+                      { key: 'quote', label: 'Quote', type: 'textarea' },
+                      { key: 'accentColor', label: 'Accent Color', type: 'color' },
+                      { key: 'avatar', label: 'Avatar Image', type: 'upload' },
+                      { key: 'status', label: 'Active Status', type: 'switch' }
+                    ]
+                  })}
+
+                  {sec.id === 'seo' && (
+                    <div className="flex flex-col gap-4">
+                      <div className="grid grid-cols-1 gap-4">
+                        <Input label="Meta Title" value={seoForm.metaTitle || ''} onChange={e => setSeoForm({ ...seoForm, metaTitle: e.target.value })} />
+                        <Input textarea rows={2} label="Meta Description" value={seoForm.metaDescription || ''} onChange={e => setSeoForm({ ...seoForm, metaDescription: e.target.value })} />
+                        <Input textarea rows={2} label="Keywords (comma separated)" value={seoForm.keywords || ''} onChange={e => setSeoForm({ ...seoForm, keywords: e.target.value })} />
+                        {renderMediaUpload("OpenGraph / Twitter Shared Image", seoForm.ogImage, "ogImage")}
+                      </div>
+                      <div className="flex justify-end pt-3 border-t border-zinc-900/60">
+                        <Button onClick={() => handleSingleSave('seo', seoForm)} variant="primary" size="sm" className="bg-luxury-gold text-black">Save SEO Metadata</Button>
+                      </div>
+                    </div>
+                  )}
 
                 </div>
-
-                <h4 className="text-white font-semibold">
-
-                  {step}
-
-                </h4>
-
-              </div>
-
-            ))}
-
-          </div>
-
-        </div>
-
-      </motion.div>
-
-    </motion.div>
-
-  )}
-
-</AnimatePresence>
-
-</div>
-
-);
-
-};
-
-/* ================= DASHBOARD CARD ================= */
-
-const DashboardCard = ({ title, value, icon }) => (
-
-  <motion.div
-    whileHover={{ y: -5 }}
-    className="rounded-3xl border border-zinc-800 bg-zinc-950/70 backdrop-blur-xl p-6"
-  >
-
-    <div className="flex items-center justify-between">
-
-      <div>
-
-        <p className="text-xs uppercase tracking-widest text-zinc-500">
-          {title}
-        </p>
-
-        <h2 className="text-4xl font-bold text-white mt-3">
-          {value}
-        </h2>
-
+              )}
+            </Card>
+          );
+        })}
       </div>
-
-      <div className="w-16 h-16 rounded-2xl bg-yellow-400/10 border border-yellow-400/20 flex items-center justify-center text-yellow-400">
-
-        {icon}
-
-      </div>
-
     </div>
-
-  </motion.div>
-
-);
-
-export default Collaborations;
+  );
+}

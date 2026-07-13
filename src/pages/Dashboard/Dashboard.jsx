@@ -93,7 +93,7 @@ export const Dashboard = ({ setCurrentView }) => {
         <div className="absolute right-0 top-0 w-80 h-full bg-gradient-to-l from-luxury-gold/5 to-transparent pointer-events-none blur-xl" />
         <div className="z-10">
           <h1 className="font-serif text-2xl md:text-3xl font-medium tracking-wide gold-text-gradient flex items-center gap-2">
-            Welcome Back, Akanksha
+            Welcome Back, TechMaster
             <Sparkles className="w-5 h-5 text-luxury-gold hidden sm:inline-block animate-pulse" />
           </h1>
           <p className="text-xs text-zinc-400 mt-1 max-w-xl">
@@ -105,9 +105,9 @@ export const Dashboard = ({ setCurrentView }) => {
             <MessageSquare className="w-4 h-4" />
             <span>Enquiries</span>
           </Button>
-          <Button variant="primary" size="sm" onClick={() => setCurrentView('blog')} className="gap-2 bg-gradient-to-r from-luxury-gold to-luxury-darkgold text-black shadow-gold-glow">
-            <Plus className="w-4 h-4 text-black stroke-[3]" />
-            <span className="text-black font-semibold">Write Blog</span>
+          <Button variant="primary" size="sm" onClick={() => setCurrentView('blog')} className="gap-2">
+            <Plus className="w-4 h-4 text-white stroke-[3]" />
+            <span className="text-white font-semibold">Write Blog</span>
           </Button>
         </div>
       </div>

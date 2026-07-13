@@ -1,1001 +1,536 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import { Card } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Switch } from '../../components/ui/Switch';
-import { Badge } from '../../components/ui/Badge';
-import { ConfirmDialog, Dialog } from '../../components/ui/Dialog';
-import { TiltCard } from '../../components/ui/TiltCard';
+import { ConfirmDialog } from '../../components/ui/Dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  FileSpreadsheet, Search, Plus, Eye, Edit2, Trash2, CheckCircle, 
-  Briefcase, GraduationCap, MapPin, Calendar, Link2, Download, 
-  User, Mail, Phone, Clock, Award, ShieldAlert, Check
+  Users, Briefcase, FileText, CheckCircle, Trash2, Edit2, X, Upload, 
+  Eye, Download, Star, StarHalf, MapPin, DollarSign, Globe, Award, Settings, MessageSquare
 } from 'lucide-react';
 
-export const Careers = ({ activeSubFeature }) => {
-  const { db, addItem, updateItem, deleteItem, toggleStatus } = useDatabase();
-  const jobsList = db.careers || [];
-  const resumesList = db.resumes || [];
-
-  const [activeSubTab, setActiveSubTab] = useState('jobs'); // jobs, resumes
-
-  // Intercept view change from external navigation clicks
-  useEffect(() => {
-    if (activeSubFeature === 'job-openings') {
-      setActiveSubTab('jobs');
-    } else if (activeSubFeature === 'resume-management') {
-      setActiveSubTab('resumes');
+/* =========================================================
+   FILE UPLOAD SIMULATOR (BLOB)
+========================================================= */
+const FileUpload = ({ label, value, onChange, accept="image/*,video/*,audio/*,.pdf,.zip,.doc,.docx" }) => {
+  const fileRef = useRef(null);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      onChange(url, file.name);
     }
-  }, [activeSubFeature]);
+  };
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{label}</label>
+      <div className="flex items-center gap-3">
+        {value && accept.includes('image') && (
+          <div className="w-12 h-10 rounded border border-zinc-700 bg-black overflow-hidden flex-shrink-0 flex items-center justify-center">
+             <img src={value} className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'} />
+          </div>
+        )}
+        <input type="file" ref={fileRef} className="hidden" accept={accept} onChange={handleFileChange} />
+        <button type="button" onClick={() => fileRef.current?.click()} className="flex-1 border border-dashed border-zinc-700 hover:border-luxury-gold hover:text-luxury-gold bg-zinc-950/50 rounded-lg px-4 py-2 text-sm flex items-center justify-center transition-colors text-zinc-400 min-h-[42px] truncate">
+          <Upload className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span className="truncate">{value ? (value.includes('blob:') ? 'File Uploaded' : value.split('/').pop()) : 'Upload File'}</span>
+        </button>
+      </div>
+    </div>
+  );
+};
 
-  // General Filter States
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+export const Careers = () => {
+  const { db, updateSection } = useDatabase();
+  
+  // Data Collections
+  const careerHero = db?.careerHero || {};
+  const careers = db?.careers || [];
+  const resumes = db?.resumes || [];
+  const careerCulture = db?.careerCulture || [];
+  const careerProcess = db?.careerProcess || [];
+  const careerStats = db?.careerStats || {};
+  const careerGallery = db?.careerGallery || [];
+  const careerSettings = db?.careerSettings || {};
+  const careerSEO = db?.careerSEO || {};
 
-  // Job Opening CRUD States
-  const [isJobFormOpen, setIsJobFormOpen] = useState(false);
-  const [editingJob, setEditingJob] = useState(null);
-  const [deleteJobId, setDeleteJobId] = useState(null);
-  const [jobFormData, setJobFormData] = useState({});
-  const [jobErrors, setJobErrors] = useState({});
+  const [toastMsg, setToastMsg] = useState('');
+  const showToast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 3000); };
 
-  // Resume CRUD States
-  const [isResumeFormOpen, setIsResumeFormOpen] = useState(false);
-  const [editingResume, setEditingResume] = useState(null);
-  const [deleteResumeId, setDeleteResumeId] = useState(null);
-  const [resumeFormData, setResumeFormData] = useState({});
-  const [resumeErrors, setResumeErrors] = useState({});
-  const [viewingResume, setViewingResume] = useState(null); // Immersive 3D modal active item
+  // Nav
+  const NAV_TABS = ['Dashboard', 'Hero Settings', 'Job Openings', 'Resumes & HR', 'Culture & DNA', 'Hiring Process', 'Statistics', 'Gallery', 'Display & SEO'];
+  const [activeNavTab, setActiveNavTab] = useState('Dashboard'); 
+  
+  // States
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingType, setEditingType] = useState(null); 
+  const [editingId, setEditingId] = useState(null);
+  const [draftItem, setDraftItem] = useState({});
+  const [deleteId, setDeleteId] = useState(null);
+  const [deletingType, setDeletingType] = useState(null);
 
-  // 3D image tilt coordinates
-  const [imgTilt, setImgTilt] = useState({ x: 0, y: 0 });
-  const [imgHovered, setImgHovered] = useState(false);
+  // Settings Drafts
+  const [heroDraft, setHeroDraft] = useState(careerHero);
+  const [settingsDraft, setSettingsDraft] = useState(careerSettings);
+  const [seoDraft, setSeoDraft] = useState(careerSEO);
+  const [statsDraft, setStatsDraft] = useState(careerStats);
 
-  const handleImageMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const normalizedX = (x / rect.width) - 0.5;
-    const normalizedY = (y / rect.height) - 0.5;
-    const tiltLimit = 10;
-    setImgTilt({
-      x: -normalizedY * tiltLimit,
-      y: normalizedX * tiltLimit
-    });
+  // Resume Viewer side-panel
+  const [viewingResume, setViewingResume] = useState(null);
+
+  const handleStartAdd = (type) => {
+    setEditingType(type);
+    setEditingId(null);
+    let init = { active: true, order: 1 };
+    if (type === 'careers') init = { active: true, featured: false, priority: 1, type: 'Full Time' };
+    if (type === 'resumes') init = { status: 'New', rating: 0 };
+    setDraftItem(init);
+    setIsEditorOpen(true);
   };
 
-  const handleImageMouseLeave = () => {
-    setImgHovered(false);
-    setImgTilt({ x: 0, y: 0 });
+  const handleStartEdit = (type, item) => {
+    setEditingType(type);
+    setEditingId(item.id);
+    setDraftItem(item);
+    setIsEditorOpen(true);
   };
 
-  // Stats
-  const totalJobs = jobsList.length;
-  const totalResumes = resumesList.length;
-  const verifiedResumes = resumesList.filter(r => r.status === 'Reviewed').length;
-  const pendingResumes = resumesList.filter(r => r.status === 'New').length;
-
-  // --- JOB OPENINGS ACTIONS ---
-  const openJobForm = (job = null) => {
-    setJobErrors({});
-    if (job) {
-      setEditingJob(job);
-      setJobFormData(job);
+  const handleSaveItem = () => {
+    const collectionKey = editingType;
+    const currentList = db[collectionKey] || [];
+    let nextList = [];
+    if (editingId) {
+      nextList = currentList.map(item => item.id === editingId ? { ...draftItem, id: item.id } : item);
+      if (viewingResume?.id === editingId) setViewingResume(draftItem);
     } else {
-      setEditingJob(null);
-      setJobFormData({
-        title: '',
-        department: 'Production',
-        type: 'Full-time',
-        location: 'Mumbai (Hybrid)',
-        description: '',
-        requirements: '',
-        benefits: '',
-        isActive: true
-      });
+      nextList = [...currentList, { ...draftItem, id: `${editingType}-${Date.now()}` }];
     }
-    setIsJobFormOpen(true);
+    updateSection(collectionKey, nextList);
+    setIsEditorOpen(false);
+    showToast(`✅ Saved ${editingType}.`);
   };
 
-  const handleJobInputChange = (name, value) => {
-    setJobFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleJobSubmit = (e) => {
-    e.preventDefault();
-    if (!jobFormData.title?.trim() || !jobFormData.description?.trim()) {
-      setJobErrors({
-        title: !jobFormData.title ? 'Position Title is required.' : '',
-        description: !jobFormData.description ? 'Description is required.' : ''
-      });
-      return;
-    }
-
-    if (editingJob) {
-      updateItem('careers', editingJob.id, jobFormData);
-    } else {
-      addItem('careers', jobFormData);
-    }
-    setIsJobFormOpen(false);
-  };
-
-  const handleJobDelete = () => {
-    if (deleteJobId) {
-      deleteItem('careers', deleteJobId);
-      setDeleteJobId(null);
+  const handleDeleteConfirm = () => {
+    if (deleteId) {
+      const collectionKey = deletingType;
+      const currentList = db[collectionKey] || [];
+      updateSection(collectionKey, currentList.filter(item => item.id !== deleteId));
+      if (viewingResume?.id === deleteId) setViewingResume(null);
+      setDeleteId(null);
+      setDeletingType(null);
+      showToast("✅ Record deleted.");
     }
   };
 
-  // --- RESUME APPLICATION ACTIONS ---
-  const openResumeForm = (resume = null) => {
-    setResumeErrors({});
-    if (resume) {
-      setEditingResume(resume);
-      setResumeFormData(resume);
-    } else {
-      setEditingResume(null);
-      setResumeFormData({
-        candidateName: '',
-        email: '',
-        phone: '',
-        jobApplied: jobsList[0]?.title || 'Creative Video Producer & Editor',
-        experienceYears: 2,
-        portfolioLink: '',
-        resumeFileName: 'Candidate_CV_Draft.pdf',
-        status: 'New',
-        coverLetter: ''
-      });
-    }
-    setIsResumeFormOpen(true);
-  };
+  const handleBulkAction = (action, collectionKey) => {
+      // In a real app, this would use a checklist. Simulating bulk action for now.
+      showToast(`Simulated Bulk ${action} on ${collectionKey}`);
+  }
 
-  const handleResumeInputChange = (name, value) => {
-    setResumeFormData(prev => ({ ...prev, [name]: value }));
-  };
+  const renderTable = (list, type) => (
+    <div className="bg-zinc-950/40 border border-zinc-800/50 rounded-2xl overflow-x-auto w-full">
+      <table className="w-full text-left text-sm text-zinc-400 whitespace-nowrap">
+        <thead className="bg-zinc-900/50 border-b border-zinc-850 text-[10px] uppercase tracking-wider font-semibold">
+          <tr>
+            <th className="px-5 py-4 w-10">#</th>
+            <th className="px-5 py-4">Details</th>
+            {type === 'careers' && <th className="px-5 py-4">Role Info</th>}
+            {type === 'resumes' && <th className="px-5 py-4">Application</th>}
+            <th className="px-5 py-4">Status</th>
+            <th className="px-5 py-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-850/50">
+          {list.length === 0 && <tr><td colSpan="6" className="px-5 py-8 text-center text-zinc-500 italic">No items found.</td></tr>}
+          {list.map((item, idx) => (
+            <tr key={item.id} className="hover:bg-zinc-900/20 transition-colors group cursor-pointer" onClick={() => type === 'resumes' && setViewingResume(item)}>
+              <td className="px-5 py-4 text-zinc-500">{item.order || idx + 1}</td>
+              <td className="px-5 py-4">
+                <div className="flex flex-col">
+                  <span className="text-zinc-200 font-medium truncate max-w-[200px]">{item.title || item.candidateName || item.step || '-'}</span>
+                  <span className="text-[10px] text-zinc-500 truncate max-w-[200px]">{item.department || item.email || item.description || '-'}</span>
+                </div>
+              </td>
+              
+              {type === 'careers' && (
+                <td className="px-5 py-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-zinc-300 text-xs flex items-center gap-1"><MapPin className="w-3 h-3 text-luxury-gold"/> {item.location || '-'}</span>
+                    <span className="text-zinc-500 text-[10px] uppercase">{item.type || 'Full Time'}</span>
+                  </div>
+                </td>
+              )}
+              
+              {type === 'resumes' && (
+                <td className="px-5 py-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-zinc-300 text-xs font-semibold">{item.jobApplied || 'General'}</span>
+                    <span className="text-zinc-500 text-[10px]">{item.experienceYears ? `${item.experienceYears} Yrs` : '-'}</span>
+                  </div>
+                </td>
+              )}
 
-  const handleResumeSubmit = (e) => {
-    e.preventDefault();
-    if (!resumeFormData.candidateName?.trim() || !resumeFormData.email?.trim()) {
-      setResumeErrors({
-        candidateName: !resumeFormData.candidateName ? 'Candidate Name is required.' : '',
-        email: !resumeFormData.email ? 'Email address is required.' : ''
-      });
-      return;
-    }
-
-    if (editingResume) {
-      updateItem('resumes', editingResume.id, resumeFormData);
-      if (viewingResume?.id === editingResume.id) {
-        setViewingResume(prev => ({ ...prev, ...resumeFormData }));
-      }
-    } else {
-      addItem('resumes', resumeFormData);
-    }
-    setIsResumeFormOpen(false);
-  };
-
-  const handleResumeDelete = () => {
-    if (deleteResumeId) {
-      deleteItem('resumes', deleteResumeId);
-      if (viewingResume?.id === deleteResumeId) {
-        setViewingResume(null);
-      }
-      setDeleteResumeId(null);
-    }
-  };
-
-  const verifyResumeStatus = (id, currentStatus) => {
-    const nextStatus = currentStatus === 'Reviewed' ? 'New' : 'Reviewed';
-    updateItem('resumes', id, { status: nextStatus });
-    if (viewingResume?.id === id) {
-      setViewingResume(prev => ({ ...prev, status: nextStatus }));
-    }
-  };
-
-  // Filters
-  const filteredJobs = jobsList.filter(job => {
-    const matchesSearch = 
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.location.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesRole = roleFilter === 'all' || job.department === roleFilter;
-    return matchesSearch && matchesRole;
-  });
-
-  const filteredResumes = resumesList.filter(res => {
-    const matchesSearch = 
-      res.candidateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      res.jobApplied.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      res.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || res.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+              <td className="px-5 py-4">
+                {type === 'resumes' ? (
+                  <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-medium border ${item.status === 'Selected' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : item.status === 'Rejected' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' : item.status === 'Reviewed' || item.status === 'Shortlisted' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>{item.status || 'New'}</span>
+                ) : (
+                  <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-medium border ${item.active !== false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-zinc-800 text-zinc-400 border-zinc-700'}`}>{item.active !== false ? 'Active' : 'Hidden'}</span>
+                )}
+              </td>
+              <td className="px-5 py-4 text-right" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-end gap-1.5">
+                  <button onClick={() => handleStartEdit(type, item)} className="p-1.5 hover:bg-zinc-900 rounded text-zinc-400 hover:text-luxury-gold"><Edit2 className="w-4 h-4" /></button>
+                  <button onClick={() => { setDeletingType(type); setDeleteId(item.id); }} className="p-1.5 hover:bg-zinc-900 rounded text-rose-500"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
-    <div className="flex flex-col gap-6 text-left">
-      {/* Header info */}
-      <div className="flex items-center justify-between flex-wrap gap-4 border-b border-zinc-800 pb-5">
-        <div>
-          <h1 className="font-serif text-2xl font-medium tracking-wide text-zinc-100 flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-luxury-gold" />
-            Recruitment Hub
-          </h1>
-          <p className="text-xs text-zinc-500 mt-1">
-            Displaying corporate job listings, internship roles, and submitted candidate resumes.
-          </p>
-        </div>
-      </div>
-
-      {/* Recruitment Analytics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="glass-panel border border-zinc-850 p-4 rounded-lg flex flex-col gap-1 bg-zinc-950/20">
-          <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-mono">Open Job Listings</span>
-          <span className="text-2xl font-bold text-zinc-100 mt-1">{totalJobs} Active</span>
-        </div>
-        <div className="glass-panel border border-zinc-850 p-4 rounded-lg flex flex-col gap-1 bg-zinc-950/20">
-          <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-mono">Total Submissions</span>
-          <span className="text-2xl font-bold text-zinc-100 mt-1">{totalResumes} Resumes</span>
-        </div>
-        <div className="glass-panel border border-zinc-850 p-4 rounded-lg flex flex-col gap-1 bg-zinc-950/20">
-          <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-mono">Pending Evaluation</span>
-          <span className="text-2xl font-bold text-luxury-gold mt-1">{pendingResumes} Review</span>
-        </div>
-        <div className="glass-panel border border-zinc-850 p-4 rounded-lg flex flex-col gap-1 bg-zinc-950/20">
-          <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-mono">Verified Candidate Rate</span>
-          <span className="text-2xl font-bold text-emerald-400 mt-1">
-            {totalResumes > 0 ? `${Math.round((verifiedResumes / totalResumes) * 100)}%` : '0%'}
-          </span>
-        </div>
-      </div>
-
-      {/* Navigation Sub-Tabs */}
-      <div className="flex border-b border-zinc-800 gap-2 select-none">
-        <button
-          onClick={() => { setActiveSubTab('jobs'); setSearchTerm(''); }}
-          className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all duration-300 cursor-pointer ${
-            activeSubTab === 'jobs' 
-              ? 'border-luxury-gold text-luxury-gold' 
-              : 'border-transparent text-zinc-500 hover:text-zinc-350'
-          }`}
-        >
-          Job Openings ({totalJobs})
-        </button>
-        <button
-          onClick={() => { setActiveSubTab('resumes'); setSearchTerm(''); }}
-          className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all duration-300 cursor-pointer ${
-            activeSubTab === 'resumes' 
-              ? 'border-luxury-gold text-luxury-gold' 
-              : 'border-transparent text-zinc-500 hover:text-zinc-350'
-          }`}
-        >
-          Resume Management ({totalResumes})
-        </button>
-      </div>
-
-      {/* --- TAB PANEL: JOB OPENINGS --- */}
-      {activeSubTab === 'jobs' && (
-        <div className="flex flex-col gap-6">
-          {/* Section description */}
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div className="space-y-1">
-              <h2 className="text-lg font-semibold text-zinc-200">Job Positions Directory</h2>
-              <p className="text-xs text-zinc-400 max-w-xl">
-                Define active vacancies, job descriptions, and locations. Toggle listings as live or draft to control publishing.
-              </p>
-            </div>
-            <Button variant="primary" size="sm" onClick={() => openJobForm(null)} className="gap-1.5 self-start xl:self-auto">
-              <Plus className="w-4 h-4 text-black" />
-              <span className="text-black font-semibold">Add Job Role</span>
-            </Button>
-          </div>
-
-          {/* Filters */}
-          <div className="glass-panel rounded-lg p-4 border border-zinc-800/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="relative flex-grow max-w-md">
-              <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-3.5" />
-              <input
-                type="text"
-                placeholder="Search job roles, departments, or locations..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-zinc-950/40 border border-zinc-800/80 rounded-md pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="w-44">
-              <Select
-                options={[
-                  { value: 'all', label: 'All Departments' },
-                  { value: 'Production', label: 'Production' },
-                  { value: 'Marketing', label: 'Marketing' },
-                  { value: 'Creative Consulting', label: 'Creative Consulting' },
-                  { value: 'Administration', label: 'Administration' }
-                ]}
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Jobs Listing Grid with Staggered Animations */}
-          <motion.div 
-            variants={{
-              hidden: { opacity: 0 },
-              show: {
-                opacity: 1,
-                transition: { staggerChildren: 0.06 }
-              }
-            }}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {filteredJobs.length === 0 ? (
-              <p className="text-sm text-zinc-500 italic p-6 col-span-3">No jobs found matching the parameters.</p>
-            ) : (
-              filteredJobs.map((job) => (
-                <motion.div
-                  key={job.id}
-                  variants={{
-                    hidden: { opacity: 0, y: 20, scale: 0.97 },
-                    show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 120, damping: 15 } }
-                  }}
-                >
-                  <TiltCard 
-                    className="h-full border border-zinc-800/80 p-5 flex flex-col justify-between group bg-zinc-950/10"
-                    maxTilt={5}
-                  >
-                    <div className="flex flex-col gap-3">
-                      <div className="flex justify-between items-center flex-wrap gap-2">
-                        <Badge variant="gold">{job.department}</Badge>
-                        <Badge variant={job.isActive ? 'success' : 'default'}>
-                          {job.isActive ? 'Active' : 'Draft'}
-                        </Badge>
-                      </div>
-
-                      <div className="border-b border-zinc-900 pb-2">
-                        <h3 className="font-serif text-sm font-bold text-zinc-200 tracking-wide mt-1 group-hover:text-luxury-gold transition-colors">{job.title}</h3>
-                        <span className="text-[9px] text-zinc-500 font-mono flex items-center gap-1 mt-1 uppercase">
-                          <MapPin className="w-3 h-3 text-luxury-gold" /> {job.location} | {job.type}
-                        </span>
-                      </div>
-
-                      <p className="text-xs text-zinc-400 leading-relaxed line-clamp-3">
-                        {job.description || "Creative job opening seeking elite candidate files."}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between border-t border-zinc-900/60 pt-3.5 mt-5">
-                      <span className="text-[9px] text-zinc-500 font-mono">
-                        Posted: {new Date(job.createdAt || Date.now()).toLocaleDateString()}
-                      </span>
-
-                      <div className="flex gap-1">
-                        <button 
-                          onClick={() => openJobForm(job)}
-                          className="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-luxury-gold transition-colors cursor-pointer"
-                          title="Edit Position"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button 
-                          onClick={() => setDeleteJobId(job.id)}
-                          className="p-1.5 rounded hover:bg-zinc-800 text-zinc-500 hover:text-rose-450 transition-colors cursor-pointer"
-                          title="Delete Position"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </TiltCard>
-                </motion.div>
-              ))
-            )}
-          </motion.div>
-
-          {/* Job Guideline Box */}
-          <Card className="border border-zinc-800/70 bg-zinc-950/70 p-5 mt-4">
-            <h3 className="text-sm uppercase tracking-[0.3em] text-zinc-500">Job Listing Guidelines</h3>
-            <ul className="mt-4 space-y-2 text-xs text-zinc-450 list-disc list-inside">
-              <li>Define the core narrative scope and storyboards expected of the candidate.</li>
-              <li>Outline technical software parameters (such as Premiere, After Effects, DaVinci, or Blender).</li>
-              <li>List competitive benefits, health provisions, and access to co-branded visual events.</li>
-            </ul>
-          </Card>
-        </div>
-      )}
-
-      {/* --- TAB PANEL: RESUME MANAGEMENT --- */}
-      {activeSubTab === 'resumes' && (
-        <div className="flex flex-col gap-6">
-          {/* Section description */}
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div className="space-y-1">
-              <h2 className="text-lg font-semibold text-zinc-200">Submitted Candidate Resumes</h2>
-              <p className="text-xs text-zinc-400 max-w-xl">
-                Review applicant statements, portfolios, and experience levels. Verify resume submissions to mark them Reviewed.
-              </p>
-            </div>
-            <Button variant="primary" size="sm" onClick={() => openResumeForm(null)} className="gap-1.5 self-start xl:self-auto">
-              <Plus className="w-4 h-4 text-black" />
-              <span className="text-black font-semibold">Add Candidate CV</span>
-            </Button>
-          </div>
-
-          {/* Filters */}
-          <div className="glass-panel rounded-lg p-4 border border-zinc-800/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="relative flex-grow max-w-md">
-              <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-3.5" />
-              <input
-                type="text"
-                placeholder="Search candidate names, emails, or job titles..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-zinc-950/40 border border-zinc-800/80 rounded-md pl-10 pr-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="w-40">
-              <Select
-                options={[
-                  { value: 'all', label: 'All Status' },
-                  { value: 'New', label: 'New Files' },
-                  { value: 'Reviewed', label: 'Reviewed/Verified' },
-                  { value: 'Rejected', label: 'Archived/Rejected' }
-                ]}
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Candidate Resumes Cards Grid */}
-          <motion.div 
-            variants={{
-              hidden: { opacity: 0 },
-              show: {
-                opacity: 1,
-                transition: { staggerChildren: 0.06 }
-              }
-            }}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {filteredResumes.length === 0 ? (
-              <p className="text-sm text-zinc-500 italic p-6 col-span-3">No resumes matching selection.</p>
-            ) : (
-              filteredResumes.map((res) => (
-                <motion.div
-                  key={res.id}
-                  onClick={() => setViewingResume(res)}
-                  variants={{
-                    hidden: { opacity: 0, y: 20, scale: 0.97 },
-                    show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 120, damping: 15 } }
-                  }}
-                  className="cursor-pointer"
-                >
-                  <TiltCard 
-                    className="h-full border border-zinc-800/80 p-5 flex flex-col justify-between group relative overflow-hidden bg-zinc-950/10"
-                    maxTilt={6}
-                  >
-                    {/* Watermarked AD logo in backdrop */}
-                    <div className="absolute -bottom-8 -right-8 text-7xl font-black font-serif text-white/[0.015] pointer-events-none select-none">
-                      AD
-                    </div>
-
-                    <div className="flex flex-col gap-3 relative z-10">
-                      <div className="flex justify-between items-center">
-                        <Badge variant={res.status === 'Reviewed' ? 'success' : res.status === 'Rejected' ? 'danger' : 'info'}>
-                          {res.status}
-                        </Badge>
-                        <span className="text-[10px] text-zinc-500 font-mono font-semibold">{res.experienceYears || '0'} Years Practice</span>
-                      </div>
-
-                      <div className="border-b border-zinc-900 pb-2">
-                        <h4 className="font-serif text-sm font-bold text-zinc-200 uppercase tracking-wide group-hover:text-luxury-gold transition-colors">{res.candidateName}</h4>
-                        <span className="text-[9px] text-zinc-500 font-mono tracking-wider block mt-0.5 uppercase">{res.jobApplied}</span>
-                      </div>
-
-                      <p className="text-xs text-zinc-400 italic line-clamp-3 leading-relaxed">
-                        "{res.coverLetter || "No cover statement uploaded by candidate."}"
-                      </p>
-                    </div>
-
-                    {/* Actions and Footer */}
-                    <div className="flex justify-between items-center mt-5 border-t border-zinc-900/60 pt-3.5 relative z-10" onClick={(e) => e.stopPropagation()}>
-                      <span className="text-[9px] text-zinc-500 font-mono">
-                        {new Date(res.appliedAt || Date.now()).toLocaleDateString()}
-                      </span>
-
-                      <div className="flex gap-1.5">
-                        <button 
-                          onClick={() => setViewingResume(res)}
-                          className="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-luxury-gold transition-colors cursor-pointer"
-                          title="Inspect CV"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-                        <button 
-                          onClick={() => verifyResumeStatus(res.id, res.status)}
-                          className={`p-1.5 rounded hover:bg-zinc-800 transition-colors cursor-pointer ${res.status === 'Reviewed' ? 'text-emerald-400 font-bold' : 'text-zinc-500 hover:text-emerald-400'}`}
-                          title={res.status === 'Reviewed' ? "Mark Unverified" : "Verify Resume"}
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                        </button>
-                        <button 
-                          onClick={() => openResumeForm(res)}
-                          className="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-luxury-gold transition-colors cursor-pointer"
-                          title="Edit Submission"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button 
-                          onClick={() => setDeleteResumeId(res.id)}
-                          className="p-1.5 rounded hover:bg-zinc-800 text-zinc-500 hover:text-rose-450 transition-colors cursor-pointer"
-                          title="Delete Submission"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  </TiltCard>
-                </motion.div>
-              ))
-            )}
-          </motion.div>
-
-          {/* Candidate Guideline Box */}
-          <Card className="border border-zinc-800/70 bg-zinc-950/70 p-5 mt-4">
-            <h3 className="text-sm uppercase tracking-[0.3em] text-zinc-500">Candidate Review Workflow</h3>
-            <ul className="mt-4 space-y-2 text-xs text-zinc-450 list-disc list-inside">
-              <li>HR can click the verification checkmark on the card to instantly verify a profile (marked Reviewed in green).</li>
-              <li>Open candidate CV mockups to view structured education, experience, statement, and contact details.</li>
-              <li>Update application status, download PDF documents, and visit portfolio reels from within the preview panel.</li>
-            </ul>
-          </Card>
-        </div>
-      )}
-
-      {/* --- JOB CRUDE DIALOG FORM --- */}
-      <Dialog
-        isOpen={isJobFormOpen}
-        onClose={() => setIsJobFormOpen(false)}
-        title={editingJob ? "Edit Job Position" : "Register Job Position"}
-        size="md"
-      >
-        <form onSubmit={handleJobSubmit} className="flex flex-col gap-4 text-left">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input 
-              label="Position Title"
-              value={jobFormData.title || ''}
-              onChange={(e) => handleJobInputChange('title', e.target.value)}
-              error={jobErrors.title}
-              placeholder="e.g. Creative Video Editor"
-              required
-            />
-            <Select 
-              label="Department"
-              options={['Production', 'Marketing', 'Creative Consulting', 'Administration']}
-              value={jobFormData.department || 'Production'}
-              onChange={(e) => handleJobInputChange('department', e.target.value)}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Select 
-              label="Employment Type"
-              options={['Full-time', 'Part-time', 'Internship', 'Contract']}
-              value={jobFormData.type || 'Full-time'}
-              onChange={(e) => handleJobInputChange('type', e.target.value)}
-            />
-            <Input 
-              label="Work Location"
-              value={jobFormData.location || ''}
-              onChange={(e) => handleJobInputChange('location', e.target.value)}
-              placeholder="e.g. Mumbai (Hybrid)"
-            />
-          </div>
-
-          <Input 
-            label="Job Description"
-            textarea
-            rows={3}
-            value={jobFormData.description || ''}
-            onChange={(e) => handleJobInputChange('description', e.target.value)}
-            error={jobErrors.description}
-            placeholder="Define core duties and daily responsibilities..."
-            required
-          />
-
-          <Input 
-            label="Role Requirements"
-            textarea
-            rows={3}
-            value={jobFormData.requirements || ''}
-            onChange={(e) => handleJobInputChange('requirements', e.target.value)}
-            placeholder="e.g. 3+ years experience, DaVinci Resolve expertise..."
-          />
-
-          <Input 
-            label="Benefits & Perks"
-            textarea
-            rows={2}
-            value={jobFormData.benefits || ''}
-            onChange={(e) => handleJobInputChange('benefits', e.target.value)}
-            placeholder="e.g. Competitive budget, VIP access events, health cover..."
-          />
-
-          <div className="flex items-center gap-3 py-2">
-            <span className="text-xs font-semibold text-zinc-400">Position Status:</span>
-            <div className="flex items-center gap-1.5">
-              <Switch 
-                checked={jobFormData.isActive ?? true}
-                onChange={(checked) => handleJobInputChange('isActive', checked)}
-              />
-              <span className="text-xs text-zinc-300 font-mono font-bold uppercase">
-                {jobFormData.isActive ? 'Live Listing' : 'Draft / Closed'}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 mt-4 border-t border-zinc-900 pt-4">
-            <Button variant="secondary" onClick={() => setIsJobFormOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="primary">
-              {editingJob ? "Save Changes" : "Register Position"}
-            </Button>
-          </div>
-        </form>
-      </Dialog>
-
-      {/* --- RESUME CRUDE DIALOG FORM --- */}
-      <Dialog
-        isOpen={isResumeFormOpen}
-        onClose={() => setIsResumeFormOpen(false)}
-        title={editingResume ? "Edit Resume File" : "Register Resume File"}
-        size="md"
-      >
-        <form onSubmit={handleResumeSubmit} className="flex flex-col gap-4 text-left">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input 
-              label="Candidate Full Name"
-              value={resumeFormData.candidateName || ''}
-              onChange={(e) => handleResumeInputChange('candidateName', e.target.value)}
-              error={resumeErrors.candidateName}
-              placeholder="e.g. Rohan Varma"
-              required
-            />
-            <Input 
-              label="Email Address"
-              type="email"
-              value={resumeFormData.email || ''}
-              onChange={(e) => handleResumeInputChange('email', e.target.value)}
-              error={resumeErrors.email}
-              placeholder="name@gmail.com"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input 
-              label="Contact Phone"
-              value={resumeFormData.phone || ''}
-              onChange={(e) => handleResumeInputChange('phone', e.target.value)}
-              placeholder="+91 99999 88888"
-            />
-            <Select 
-              label="Job Position Applied"
-              options={
-                jobsList.length > 0 
-                  ? jobsList.map(j => j.title)
-                  : ['Creative Video Producer & Editor', 'Luxury Public Relations (PR) Associate', '3D Motion Graphics Intern']
-              }
-              value={resumeFormData.jobApplied || ''}
-              onChange={(e) => handleResumeInputChange('jobApplied', e.target.value)}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input 
-              label="Years of Experience"
-              type="number"
-              value={resumeFormData.experienceYears || ''}
-              onChange={(e) => handleResumeInputChange('experienceYears', Number(e.target.value))}
-              placeholder="e.g. 4"
-            />
-            <Input 
-              label="Portfolio / LinkedIn Link"
-              value={resumeFormData.portfolioLink || ''}
-              onChange={(e) => handleResumeInputChange('portfolioLink', e.target.value)}
-              placeholder="https://vimeo.com/..."
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input 
-              label="Attached Resume File Name"
-              value={resumeFormData.resumeFileName || ''}
-              onChange={(e) => handleResumeInputChange('resumeFileName', e.target.value)}
-              placeholder="e.g. Candidate_CV.pdf"
-            />
-            <Select 
-              label="Evaluation Status"
-              options={['New', 'Reviewed', 'Rejected']}
-              value={resumeFormData.status || 'New'}
-              onChange={(e) => handleResumeInputChange('status', e.target.value)}
-            />
-          </div>
-
-          <Input 
-            label="Candidate Statement / Cover Letter"
-            textarea
-            rows={3}
-            value={resumeFormData.coverLetter || ''}
-            onChange={(e) => handleResumeInputChange('coverLetter', e.target.value)}
-            placeholder="Input cover letter summaries here..."
-          />
-
-          <div className="flex justify-end gap-3 mt-4 border-t border-zinc-900 pt-4">
-            <Button variant="secondary" onClick={() => setIsResumeFormOpen(false)}>Cancel</Button>
-            <Button type="submit" variant="primary">
-              {editingResume ? "Save Changes" : "Submit Candidate"}
-            </Button>
-          </div>
-        </form>
-      </Dialog>
-
-      {/* --- 3D IMMERSIVE CV SHOWCASE DETAILS --- */}
+    <div className="flex flex-col gap-6 text-left min-h-screen pb-20 relative">
       <AnimatePresence>
-        {viewingResume && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setViewingResume(null)}
-              className="fixed inset-0 bg-black/90 backdrop-blur-xl z-40"
-            />
+        {toastMsg && (
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-24 left-1/2 -translate-x-1/2 z-[9999] bg-zinc-900 border border-luxury-gold/50 text-luxury-gold px-6 py-3 rounded-full shadow-gold-glow flex items-center gap-3">
+            <CheckCircle className="w-5 h-5" />
+            <span className="font-medium text-sm">{toastMsg}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            {/* Showcase details container */}
-            <motion.div
-              layoutId={`res-card-${viewingResume.id}`}
-              className="relative w-full max-w-4xl glass-panel border border-zinc-800 rounded-lg overflow-hidden z-50 flex flex-col md:flex-row text-left shadow-gold-glow-lg"
-              style={{ perspective: 1200 }}
-            >
-              {/* Left pane: cream A4 paper CV Mockup with 3D mouse tracking tilt */}
-              <motion.div 
-                initial={{ opacity: 0, rotateY: 15, scale: 0.95 }}
-                animate={{ opacity: 1, rotateY: 0, scale: 1 }}
-                exit={{ opacity: 0, rotateY: 15, scale: 0.95 }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
-                onMouseMove={handleImageMouseMove}
-                onMouseEnter={() => setImgHovered(true)}
-                onMouseLeave={handleImageMouseLeave}
-                className="w-full md:w-1/2 min-h-[420px] md:min-h-auto p-8 overflow-hidden relative group cursor-crosshair select-none flex items-center justify-center bg-zinc-950/80"
-                style={{ perspective: 1000, transformStyle: 'preserve-3d' }}
-              >
-                {/* cream-white paper CV sheet */}
-                <motion.div 
-                  animate={{
-                    rotateX: imgTilt.x,
-                    rotateY: imgTilt.y,
-                    scale: imgHovered ? 1.03 : 1.0
-                  }}
-                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                  style={{ transformStyle: 'preserve-3d' }}
-                  className="w-full max-w-[320px] aspect-[1/1.414] bg-stone-50 border border-stone-200/80 p-5 flex flex-col justify-between text-left relative overflow-hidden shadow-2xl rounded"
-                >
-                  {/* Watermarked AD logo in background */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[130px] font-black font-serif text-stone-200/40 pointer-events-none select-none">
-                    AD
-                  </div>
+      {!isEditorOpen && (
+        <>
+          <div className="border-b border-zinc-800/80 pb-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <div>
+              <h1 className="font-serif text-3xl font-medium tracking-wide text-zinc-100 flex items-center gap-3">
+                <Briefcase className="w-7 h-7 text-luxury-gold" /> Careers CMS
+              </h1>
+              <p className="text-sm text-zinc-500 mt-2">Manage open positions, resumes, hiring culture, process, and HR dashboard.</p>
+            </div>
+          </div>
 
-                  <div className="flex flex-col gap-4 relative z-10">
-                    {/* CV Header */}
-                    <div className="border-b border-stone-300 pb-3 flex justify-between items-start">
-                      <div className="max-w-[200px]">
-                        <h4 className="font-serif text-sm font-bold text-stone-900 uppercase tracking-wide leading-tight">{viewingResume.candidateName}</h4>
-                        <p className="text-[8px] text-stone-500 font-mono tracking-widest uppercase mt-0.5">{viewingResume.jobApplied} Candidate</p>
-                      </div>
-                      <img 
-                        src={
-                          viewingResume.candidateName.includes("Rohan") 
-                            ? "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150" 
-                            : viewingResume.candidateName.includes("Neha") 
-                            ? "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150" 
-                            : viewingResume.candidateName.includes("Aleksei") 
-                            ? "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150" 
-                            : "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150"
-                        } 
-                        className="w-10 h-10 rounded border border-stone-200 object-cover shadow-sm flex-shrink-0"
-                        alt="" 
-                      />
-                    </div>
+          <div className="flex flex-wrap gap-2 mb-2 pb-4 border-b border-zinc-800/50">
+            {NAV_TABS.map(tab => (
+              <button key={tab} onClick={() => setActiveNavTab(tab)} className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-[1.5px] border transition-all ${activeNavTab === tab ? "bg-luxury-gold border-luxury-gold text-black shadow-gold-glow-sm" : "bg-zinc-950 border-zinc-800/50 text-zinc-400 hover:border-zinc-700 hover:text-white"}`}>
+                {tab}
+              </button>
+            ))}
+          </div>
 
-                    {/* CV Details */}
-                    <div className="flex flex-col gap-3.5 text-[9px] text-stone-600 font-sans">
-                      {/* Contact */}
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[7.5px] font-bold text-stone-400 uppercase tracking-wider font-mono">Contact Details</span>
-                        <span className="font-mono text-stone-850 font-semibold">{viewingResume.email}</span>
-                        <span className="font-mono text-stone-850 font-semibold">{viewingResume.phone || "No contact phone"}</span>
-                      </div>
-
-                      {/* Summary */}
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[7.5px] font-bold text-stone-400 uppercase tracking-wider font-mono">Summary</span>
-                        <p className="leading-relaxed text-stone-800 italic line-clamp-3">
-                          "{viewingResume.coverLetter || "Creative specialist looking to expand luxury brand campaigns and digital assets."}"
-                        </p>
-                      </div>
-
-                      {/* Work history */}
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[7.5px] font-bold text-stone-400 uppercase tracking-wider font-mono">Work History</span>
-                        <div className="flex justify-between font-semibold text-stone-900">
-                          <span>Senior {viewingResume.jobApplied || 'Specialist'}</span>
-                          <span>{viewingResume.experienceYears} Years Exp</span>
+          {activeNavTab === 'Dashboard' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-zinc-950/40 border border-zinc-800/80 p-4 rounded-xl text-center"><span className="text-2xl font-serif text-white">{careers.length}</span><span className="text-[10px] uppercase text-zinc-500 block mt-1">Total Jobs</span></div>
+                <div className="bg-zinc-950/40 border border-zinc-800/80 p-4 rounded-xl text-center"><span className="text-2xl font-serif text-white">{resumes.length}</span><span className="text-[10px] uppercase text-zinc-500 block mt-1">Applications</span></div>
+                <div className="bg-zinc-950/40 border border-zinc-800/80 p-4 rounded-xl text-center"><span className="text-2xl font-serif text-blue-400">{resumes.filter(r=>r.status==='Shortlisted').length}</span><span className="text-[10px] uppercase text-zinc-500 block mt-1">Shortlisted</span></div>
+                <div className="bg-zinc-950/40 border border-zinc-800/80 p-4 rounded-xl text-center"><span className="text-2xl font-serif text-emerald-400">{resumes.filter(r=>r.status==='Selected').length}</span><span className="text-[10px] uppercase text-zinc-500 block mt-1">Hired (Selected)</span></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-zinc-950/40 border border-zinc-800/80 p-6 rounded-2xl">
+                   <h3 className="text-lg font-serif mb-4 flex items-center gap-2"><Globe className="w-4 h-4 text-luxury-gold"/> Recent Applications</h3>
+                   <div className="flex flex-col gap-3">
+                      {resumes.slice(0,5).map(r => (
+                        <div key={r.id} onClick={() => setViewingResume(r)} className="bg-black/40 border border-zinc-800 p-3 rounded-lg flex items-center justify-between cursor-pointer hover:border-luxury-gold/50 transition-colors">
+                           <div>
+                              <p className="font-bold text-sm text-zinc-200">{r.candidateName}</p>
+                              <p className="text-xs text-zinc-500">{r.jobApplied}</p>
+                           </div>
+                           <Badge variant={r.status === 'New' ? 'info' : 'success'}>{r.status}</Badge>
                         </div>
-                        <p className="leading-tight text-[8px] text-stone-500">Led campaign storylines, edited cinematic reels, and coordinated publishing.</p>
-                      </div>
-
-                      {/* Technical core */}
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[7.5px] font-bold text-stone-400 uppercase tracking-wider font-mono">Competencies</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          <span className="text-[8px] py-0.5 px-2 bg-stone-200/60 rounded-full text-stone-700 font-semibold">Creative Suite</span>
-                          <span className="text-[8px] py-0.5 px-2 bg-stone-200/60 rounded-full text-stone-700 font-semibold">Asset Ops</span>
-                          <span className="text-[8px] py-0.5 px-2 bg-stone-200/60 rounded-full text-stone-700 font-semibold">Luxury Code</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* CV Footer */}
-                  <div className="border-t border-stone-200 pt-2 flex justify-between items-center text-[7.5px] text-stone-400 font-mono">
-                    <span>AKANKSHA DUA TALENT</span>
-                    <span>VERIFIED PROFILE</span>
-                  </div>
-                </motion.div>
-
-                {/* 3D Parallax floating check glass badge */}
-                <div 
-                  className="absolute bottom-6 left-6 right-6 bg-black/65 border border-luxury-gold/20 backdrop-blur-md p-4 rounded-md shadow-gold-glow flex flex-col gap-1 pointer-events-none z-10"
-                  style={{ transform: 'translateZ(60px)' }}
-                >
-                  <span className="text-[9px] text-luxury-gold font-mono tracking-widest uppercase block">TALENT ACQUISITION</span>
-                  <h3 className="font-serif text-sm font-bold text-white uppercase tracking-wider truncate">{viewingResume.candidateName}</h3>
-                </div>
-              </motion.div>
-
-              {/* Right content details pane */}
-              <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-between bg-zinc-950/60 overflow-y-auto">
-                <button
-                  onClick={() => setViewingResume(null)}
-                  className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-900/60 text-zinc-500 hover:text-white transition-colors cursor-pointer z-20"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                <div className="flex flex-col gap-5">
-                  {/* Status header */}
-                  <div className="flex justify-between items-center pb-3 border-b border-zinc-900 flex-wrap gap-2 mt-4 md:mt-0">
-                    <div>
-                      <h3 className="font-serif text-base font-bold text-zinc-200">{viewingResume.candidateName}</h3>
-                      <span className="text-[10px] text-zinc-500">Recruitment Portal File</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-zinc-500">Status:</span>
-                      <select 
-                        value={viewingResume.status}
-                        onChange={(e) => {
-                          updateItem('resumes', viewingResume.id, { status: e.target.value });
-                          setViewingResume(prev => ({ ...prev, status: e.target.value }));
-                        }}
-                        className="bg-zinc-950 border border-zinc-800 text-zinc-355 text-xs font-semibold rounded px-2 py-1 focus:outline-none"
-                      >
-                        <option value="New">New</option>
-                        <option value="Reviewed">Reviewed</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Details Grid */}
-                  <div className="grid grid-cols-2 gap-4 text-xs">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-zinc-500 uppercase font-semibold text-[9px] tracking-wider">Experience Level</span>
-                      <span className="text-zinc-300 font-medium">{viewingResume.experienceYears} Years Practice</span>
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-zinc-500 uppercase font-semibold text-[9px] tracking-wider">Application Date</span>
-                      <span className="text-zinc-300 font-mono">{new Date(viewingResume.appliedAt || Date.now()).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-
-                  {/* Attachments */}
-                  <div className="flex flex-col gap-2 p-3 bg-zinc-900/30 border border-zinc-900 rounded">
-                    <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Document Repository</span>
-                    <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
-                      <div className="flex items-center gap-2">
-                        <FileSpreadsheet className="w-4 h-4 text-luxury-gold" />
-                        <span className="text-zinc-300 font-mono text-[11px]">{viewingResume.resumeFileName}</span>
-                      </div>
-                      <Button variant="secondary" size="sm" className="py-1 px-3 gap-1 text-[10px]">
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download CV</span>
-                      </Button>
-                    </div>
-                    {viewingResume.portfolioLink && (
-                      <div className="flex items-center justify-between flex-wrap gap-2 text-xs border-t border-zinc-900/80 pt-2 mt-1">
-                        <div className="flex items-center gap-1.5">
-                          <Link2 className="w-3.5 h-3.5 text-zinc-500" />
-                          <span className="text-zinc-300 font-mono text-[11px] truncate max-w-xs">{viewingResume.portfolioLink}</span>
-                        </div>
-                        <a href={viewingResume.portfolioLink} target="_blank" rel="noopener noreferrer">
-                          <Button variant="secondary" size="sm" className="py-1 px-3 gap-1 text-[10px]">
-                            <span>Visit Portfolio</span>
-                          </Button>
-                        </a>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Candidate letter */}
-                  <div className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">Cover Letter Quote</span>
-                    <p className="text-xs text-zinc-450 leading-relaxed bg-zinc-950/40 p-3.5 border border-zinc-900/85 rounded italic">
-                      "{viewingResume.coverLetter || "No cover statement uploaded by candidate."}"
-                    </p>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-3 mt-8 border-t border-zinc-900 pt-4 flex-wrap">
-                  <Button 
-                    variant="primary" 
-                    className="flex-1 py-2.5 text-center gap-1.5 text-xs text-black" 
-                    onClick={() => verifyResumeStatus(viewingResume.id, viewingResume.status)}
-                  >
-                    <Check className="w-3.5 h-3.5 text-black" />
-                    <span>{viewingResume.status === 'Reviewed' ? 'Mark Unverified' : 'Verify Resume'}</span>
-                  </Button>
-                  <Button variant="danger" className="py-2.5 text-xs" onClick={() => { setDeleteResumeId(viewingResume.id); }}>
-                    Delete
-                  </Button>
-                  <Button variant="secondary" className="py-2.5 text-xs" onClick={() => setViewingResume(null)}>
-                    Close File
-                  </Button>
+                      ))}
+                      {resumes.length === 0 && <p className="text-xs text-zinc-500 italic">No applications yet.</p>}
+                   </div>
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {activeNavTab === 'Hero Settings' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-6">
+              <div className="bg-zinc-950/40 border border-zinc-800 rounded-2xl p-6">
+                <h3 className="text-xl font-serif text-white mb-6">Hero Builder</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input label="Small Badge Heading" value={heroDraft.badge || ''} onChange={e => setHeroDraft(p => ({...p, badge: e.target.value}))} />
+                  <Input label="Main Title Line 1" value={heroDraft.titleLine1 || ''} onChange={e => setHeroDraft(p => ({...p, titleLine1: e.target.value}))} />
+                  <Input label="Main Title Line 2 (Highlight)" value={heroDraft.titleLine2 || ''} onChange={e => setHeroDraft(p => ({...p, titleLine2: e.target.value}))} />
+                  <div className="md:col-span-2"><Input label="Description" textarea rows={2} value={heroDraft.description || ''} onChange={e => setHeroDraft(p => ({...p, description: e.target.value}))} /></div>
+                  <FileUpload label="Background Image" value={heroDraft.bgImageUrl || ''} onChange={url => setHeroDraft(p => ({...p, bgImageUrl: url}))} accept="image/*" />
+                  <FileUpload label="Background Video" value={heroDraft.bgVideoUrl || ''} onChange={url => setHeroDraft(p => ({...p, bgVideoUrl: url}))} accept="video/*" />
+                </div>
+                <div className="flex justify-end mt-6"><Button onClick={() => { updateSection('careerHero', null, heroDraft); showToast('✅ Hero Saved'); }} variant="primary" className="bg-luxury-gold text-black">Save Hero</Button></div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeNavTab === 'Job Openings' && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
+               <div className="flex justify-between items-center"><h3 className="font-serif text-xl">Job Vacancies</h3>
+               <div className="flex gap-2">
+                 <Button onClick={() => handleBulkAction('Publish', 'careers')} variant="secondary" className="text-xs">Bulk Publish</Button>
+                 <Button onClick={() => handleStartAdd('careers')} className="bg-luxury-gold text-black">Add Job</Button>
+               </div>
+               </div>
+               {renderTable(careers, 'careers')}
+             </motion.div>
+          )}
+
+          {activeNavTab === 'Resumes & HR' && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
+               <div className="flex justify-between items-center"><h3 className="font-serif text-xl">Applicant Resumes & Pipeline</h3>
+               <div className="flex gap-2">
+                 <Button onClick={() => handleStartAdd('resumes')} className="bg-luxury-gold text-black">Add Manual Applicant</Button>
+               </div>
+               </div>
+               {renderTable(resumes, 'resumes')}
+               <p className="text-xs text-zinc-500 italic mt-2">* Click any applicant to open the HR side-panel for reviewing PDFs and rating.</p>
+             </motion.div>
+          )}
+
+          {activeNavTab === 'Culture & DNA' && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
+               <div className="flex justify-between items-center"><h3 className="font-serif text-xl">Workplace Benefits</h3><Button onClick={() => handleStartAdd('careerCulture')} className="bg-luxury-gold text-black">Add Benefit</Button></div>
+               {renderTable(careerCulture, 'careerCulture')}
+             </motion.div>
+          )}
+
+          {activeNavTab === 'Hiring Process' && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
+               <div className="flex justify-between items-center"><h3 className="font-serif text-xl">Hiring Steps</h3><Button onClick={() => handleStartAdd('careerProcess')} className="bg-luxury-gold text-black">Add Step</Button></div>
+               {renderTable(careerProcess, 'careerProcess')}
+             </motion.div>
+          )}
+
+          {activeNavTab === 'Statistics' && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-6">
+                <div className="bg-zinc-950/40 border border-zinc-800 rounded-2xl p-6">
+                  <h3 className="font-serif text-xl mb-6">Counters & Metrics</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input label="Total Employees (e.g. 50+)" value={statsDraft.employees || ''} onChange={e => setStatsDraft(p => ({...p, employees: e.target.value}))} />
+                    <Input label="Countries (e.g. 12)" value={statsDraft.countries || ''} onChange={e => setStatsDraft(p => ({...p, countries: e.target.value}))} />
+                    <Input label="Hiring Success (e.g. 98%)" value={statsDraft.success || ''} onChange={e => setStatsDraft(p => ({...p, success: e.target.value}))} />
+                    <Input label="Open Positions" value={statsDraft.openPositions || ''} onChange={e => setStatsDraft(p => ({...p, openPositions: e.target.value}))} />
+                    <Input label="Students Mentored (e.g. 15,000+)" value={statsDraft.students || ''} onChange={e => setStatsDraft(p => ({...p, students: e.target.value}))} />
+                  </div>
+                  <div className="flex justify-end mt-6"><Button onClick={() => { updateSection('careerStats', null, statsDraft); showToast('✅ Stats Saved'); }} className="bg-luxury-gold text-black">Save Stats</Button></div>
+                </div>
+             </motion.div>
+          )}
+          
+          {activeNavTab === 'Gallery' && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
+               <div className="flex justify-between items-center"><h3 className="font-serif text-xl">Office & Team Gallery</h3><Button onClick={() => handleStartAdd('careerGallery')} className="bg-luxury-gold text-black">Add Photo</Button></div>
+               {renderTable(careerGallery, 'careerGallery')}
+             </motion.div>
+          )}
+
+          {activeNavTab === 'Display & SEO' && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-zinc-950/40 border border-zinc-800 rounded-2xl p-6">
+                    <h3 className="font-serif text-xl mb-6">Visitor Section Visibility</h3>
+                    <div className="flex flex-col gap-4">
+                      {['showHero', 'showJobs', 'showCulture', 'showProcess', 'showStats', 'showGallery', 'showFAQ'].map(key => (
+                         <div key={key} className="flex items-center justify-between bg-black/40 p-3 rounded-lg border border-zinc-800">
+                           <span className="text-sm font-mono text-zinc-300">{key}</span>
+                           <Switch checked={settingsDraft[key] !== false} onChange={v => setSettingsDraft(p => ({...p, [key]: v}))} />
+                         </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="bg-zinc-950/40 border border-zinc-800 rounded-2xl p-6 flex flex-col gap-4">
+                    <h3 className="font-serif text-xl mb-2">SEO Settings</h3>
+                    <Input label="Meta Title" value={seoDraft.title || ''} onChange={e => setSeoDraft(p => ({...p, title: e.target.value}))} />
+                    <Input label="Meta Description" textarea rows={3} value={seoDraft.description || ''} onChange={e => setSeoDraft(p => ({...p, description: e.target.value}))} />
+                    <div className="flex items-center justify-between mt-4"><span className="text-sm text-zinc-300">Index Page</span><Switch checked={seoDraft.index !== false} onChange={v => setSeoDraft(p => ({...p, index: v}))} /></div>
+                  </div>
+                </div>
+                <div className="flex justify-end"><Button onClick={() => { updateSection('careerSettings', null, settingsDraft); updateSection('careerSEO', null, seoDraft); showToast('✅ SEO Saved'); }} className="bg-luxury-gold text-black">Save Settings</Button></div>
+             </motion.div>
+          )}
+        </>
+      )}
+
+      {/* ======================= MEGA EDITOR ======================= */}
+      {isEditorOpen && (
+        <div className="flex flex-col lg:flex-row gap-6 w-full h-[calc(100vh-140px)] relative z-[50]">
+          <div className="w-full lg:w-2/3 bg-zinc-950/90 border border-luxury-gold/20 p-6 rounded-2xl shadow-gold-glow flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center pb-4 border-b border-zinc-800/80 z-20">
+              <h2 className="text-xl font-serif text-white flex items-center gap-2">
+                 <Edit2 className="w-5 h-5 text-luxury-gold"/> {editingId ? 'Edit' : 'Create'} {editingType}
+              </h2>
+              <button onClick={() => setIsEditorOpen(false)} className="text-zinc-500 hover:text-white"><X className="w-5 h-5"/></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 py-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 
+                 {editingType === 'careers' && (
+                   <>
+                     <Input label="Job Title" value={draftItem.title || ''} onChange={e => setDraftItem(p => ({...p, title: e.target.value}))} />
+                     <Input label="Department" value={draftItem.department || ''} onChange={e => setDraftItem(p => ({...p, department: e.target.value}))} />
+                     <Input label="Team" value={draftItem.team || ''} onChange={e => setDraftItem(p => ({...p, team: e.target.value}))} />
+                     <Input label="Employment Type (e.g. Full Time)" value={draftItem.type || ''} onChange={e => setDraftItem(p => ({...p, type: e.target.value}))} />
+                     <Input label="Experience Required (e.g. 2+ Yrs)" value={draftItem.experience || ''} onChange={e => setDraftItem(p => ({...p, experience: e.target.value}))} />
+                     <Input label="Location (e.g. Remote, NY)" value={draftItem.location || ''} onChange={e => setDraftItem(p => ({...p, location: e.target.value}))} />
+                     <Input label="Salary Range" value={draftItem.salary || ''} onChange={e => setDraftItem(p => ({...p, salary: e.target.value}))} />
+                     <Input label="Vacancies" type="number" value={draftItem.vacancies || ''} onChange={e => setDraftItem(p => ({...p, vacancies: e.target.value}))} />
+                     <div className="md:col-span-2"><Input label="Job Description" textarea rows={3} value={draftItem.description || ''} onChange={e => setDraftItem(p => ({...p, description: e.target.value}))} /></div>
+                     <div className="md:col-span-2"><Input label="Responsibilities (Bullet points)" textarea rows={3} value={draftItem.responsibilities || ''} onChange={e => setDraftItem(p => ({...p, responsibilities: e.target.value}))} /></div>
+                     <div className="md:col-span-2"><Input label="Requirements (Bullet points)" textarea rows={3} value={draftItem.requirements || ''} onChange={e => setDraftItem(p => ({...p, requirements: e.target.value}))} /></div>
+                     <FileUpload label="Company Logo" value={draftItem.companyLogo || ''} onChange={url => setDraftItem(p => ({...p, companyLogo: url}))} accept="image/*" />
+                     <div className="flex flex-col gap-2 mt-4 md:col-span-2">
+                       <Switch label="Active & Published" checked={draftItem.active !== false} onChange={v => setDraftItem(p => ({...p, active: v}))} />
+                       <Switch label="Featured Job" checked={draftItem.featured || false} onChange={v => setDraftItem(p => ({...p, featured: v}))} />
+                     </div>
+                   </>
+                 )}
+
+                 {editingType === 'resumes' && (
+                   <>
+                     <Input label="Applicant Name" value={draftItem.candidateName || ''} onChange={e => setDraftItem(p => ({...p, candidateName: e.target.value}))} />
+                     <Input label="Email" value={draftItem.email || ''} onChange={e => setDraftItem(p => ({...p, email: e.target.value}))} />
+                     <Input label="Phone" value={draftItem.phone || ''} onChange={e => setDraftItem(p => ({...p, phone: e.target.value}))} />
+                     <Input label="Job Applied" value={draftItem.jobApplied || ''} onChange={e => setDraftItem(p => ({...p, jobApplied: e.target.value}))} />
+                     <Input label="Experience (Yrs)" value={draftItem.experienceYears || ''} onChange={e => setDraftItem(p => ({...p, experienceYears: e.target.value}))} />
+                     <Input label="Expected Salary" value={draftItem.expectedSalary || ''} onChange={e => setDraftItem(p => ({...p, expectedSalary: e.target.value}))} />
+                     <div className="md:col-span-2"><Input label="LinkedIn URL" value={draftItem.linkedinUrl || ''} onChange={e => setDraftItem(p => ({...p, linkedinUrl: e.target.value}))} /></div>
+                     <div className="md:col-span-2"><Input label="Portfolio URL" value={draftItem.portfolioUrl || ''} onChange={e => setDraftItem(p => ({...p, portfolioUrl: e.target.value}))} /></div>
+                     <div className="md:col-span-2"><Input label="Cover Letter Message" textarea rows={3} value={draftItem.coverLetter || ''} onChange={e => setDraftItem(p => ({...p, coverLetter: e.target.value}))} /></div>
+                     <div className="md:col-span-2"><FileUpload label="Resume PDF/DOC Upload" value={draftItem.resumeFileName || ''} onChange={(url, name) => setDraftItem(p => ({...p, resumeFileName: name, resumeFileUrl: url}))} accept=".pdf,.doc,.docx" /></div>
+                     
+                     {/* HR specific fields */}
+                     <div className="md:col-span-2 mt-4 pt-4 border-t border-zinc-800">
+                        <h4 className="text-luxury-gold font-bold uppercase text-[10px] mb-4">HR & Review Panel</h4>
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                           <div className="flex flex-col gap-1.5"><label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Application Status</label><Select options={[{value:'New',label:'New'},{value:'Reviewed',label:'Reviewed'},{value:'Shortlisted',label:'Shortlisted'},{value:'Selected',label:'Selected'},{value:'Rejected',label:'Rejected'}]} value={draftItem.status||'New'} onChange={e=>setDraftItem(p=>({...p, status:e.target.value}))} /></div>
+                           <div className="flex flex-col gap-1.5"><label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Star Rating</label><Select options={[{value:0,label:'Unrated'},{value:1,label:'1 Star'},{value:2,label:'2 Stars'},{value:3,label:'3 Stars'},{value:4,label:'4 Stars'},{value:5,label:'5 Stars'}]} value={draftItem.rating||0} onChange={e=>setDraftItem(p=>({...p, rating:Number(e.target.value)}))} /></div>
+                        </div>
+                        <Input label="Internal HR Notes" textarea rows={3} value={draftItem.hrNotes || ''} onChange={e => setDraftItem(p => ({...p, hrNotes: e.target.value}))} />
+                     </div>
+                   </>
+                 )}
+
+                 {(editingType === 'careerCulture' || editingType === 'careerProcess' || editingType === 'careerGallery') && (
+                   <>
+                     <Input label="Title/Step Name" value={draftItem.title || ''} onChange={e => setDraftItem(p => ({...p, title: e.target.value}))} />
+                     <div className="md:col-span-2"><Input label="Description" textarea rows={2} value={draftItem.description || ''} onChange={e => setDraftItem(p => ({...p, description: e.target.value}))} /></div>
+                     <FileUpload label="Media/Icon Upload" value={draftItem.icon || draftItem.url || ''} onChange={url => setDraftItem(p => ({...p, icon: url, url: url}))} />
+                     <div className="flex items-center mt-4"><Switch label="Active" checked={draftItem.active !== false} onChange={v => setDraftItem(p => ({...p, active: v}))} /></div>
+                   </>
+                 )}
+
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800/80 mt-auto">
+              <Button onClick={() => setIsEditorOpen(false)} variant="secondary">Cancel</Button>
+              <Button onClick={handleSaveItem} variant="primary" className="bg-luxury-gold text-black font-bold">Save Record</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HR RESUME SIDE PANEL */}
+      <AnimatePresence>
+        {viewingResume && !isEditorOpen && (
+          <div className="fixed inset-0 z-[999] flex items-center justify-end">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewingResume(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="relative w-full max-w-xl h-full bg-zinc-950 border-l border-zinc-800 shadow-2xl flex flex-col z-[1000]"
+            >
+               <div className="flex justify-between items-center p-6 border-b border-zinc-800">
+                  <div>
+                     <h2 className="text-2xl font-serif text-white">{viewingResume.candidateName}</h2>
+                     <p className="text-sm text-luxury-gold uppercase tracking-wider">{viewingResume.jobApplied}</p>
+                  </div>
+                  <button onClick={() => setViewingResume(null)} className="p-2 hover:bg-zinc-900 rounded-full"><X className="w-5 h-5"/></button>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  {/* Status & Actions */}
+                  <div className="flex items-center justify-between bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+                     <div className="flex gap-2">
+                        <Badge variant={viewingResume.status === 'New' ? 'info' : viewingResume.status === 'Selected' ? 'success' : 'default'}>{viewingResume.status}</Badge>
+                        {viewingResume.rating > 0 && <span className="flex items-center gap-1 text-luxury-gold text-xs font-bold"><Star className="w-3 h-3 fill-luxury-gold"/> {viewingResume.rating}/5</span>}
+                     </div>
+                     <Button onClick={() => handleStartEdit('resumes', viewingResume)} className="bg-luxury-gold text-black text-xs h-8">Edit & Rate</Button>
+                  </div>
+                  
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-2 gap-4 text-sm text-zinc-300">
+                     <div><span className="text-[10px] text-zinc-500 uppercase block mb-1">Email</span>{viewingResume.email}</div>
+                     <div><span className="text-[10px] text-zinc-500 uppercase block mb-1">Phone</span>{viewingResume.phone || 'N/A'}</div>
+                     <div><span className="text-[10px] text-zinc-500 uppercase block mb-1">Experience</span>{viewingResume.experienceYears ? `${viewingResume.experienceYears} Years` : 'N/A'}</div>
+                     <div><span className="text-[10px] text-zinc-500 uppercase block mb-1">Expected Salary</span>{viewingResume.expectedSalary || 'N/A'}</div>
+                  </div>
+
+                  {/* Links */}
+                  <div className="flex flex-col gap-2">
+                     <span className="text-[10px] text-zinc-500 uppercase">Portfolio & Links</span>
+                     {viewingResume.portfolioUrl && <a href={viewingResume.portfolioUrl} target="_blank" className="text-blue-400 hover:underline flex items-center gap-2"><Globe className="w-4 h-4"/> {viewingResume.portfolioUrl}</a>}
+                     {viewingResume.linkedinUrl && <a href={viewingResume.linkedinUrl} target="_blank" className="text-blue-400 hover:underline flex items-center gap-2"><Globe className="w-4 h-4"/> LinkedIn Profile</a>}
+                  </div>
+
+                  {/* Document */}
+                  <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+                     <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] text-zinc-500 uppercase flex items-center gap-2"><FileText className="w-4 h-4 text-luxury-gold"/> Resume Document</span>
+                        {viewingResume.resumeFileUrl && <a href={viewingResume.resumeFileUrl} download className="text-luxury-gold hover:text-white flex items-center gap-1 text-xs"><Download className="w-3 h-3"/> Download</a>}
+                     </div>
+                     {viewingResume.resumeFileUrl ? (
+                        <div className="w-full h-40 bg-black rounded border border-zinc-700 flex items-center justify-center relative overflow-hidden">
+                           {viewingResume.resumeFileUrl.includes('image') || viewingResume.resumeFileUrl.match(/\.(jpeg|jpg|gif|png)$/) != null ? 
+                              <img src={viewingResume.resumeFileUrl} className="w-full h-full object-cover opacity-50"/> : 
+                              <span className="text-zinc-500 text-xs">PDF Document Uploaded</span>
+                           }
+                        </div>
+                     ) : (
+                        <p className="text-zinc-500 text-xs italic">No document uploaded.</p>
+                     )}
+                  </div>
+
+                  {/* Cover Letter & HR Notes */}
+                  <div className="space-y-4">
+                     <div>
+                        <span className="text-[10px] text-zinc-500 uppercase block mb-1">Cover Letter</span>
+                        <p className="text-zinc-300 text-sm bg-zinc-900/40 p-4 rounded-lg border border-zinc-800">{viewingResume.coverLetter || 'No message provided.'}</p>
+                     </div>
+                     {viewingResume.hrNotes && (
+                        <div>
+                           <span className="text-[10px] text-luxury-gold uppercase block mb-1 flex items-center gap-1"><MessageSquare className="w-3 h-3"/> Internal HR Notes</span>
+                           <p className="text-zinc-300 text-sm bg-luxury-gold/5 p-4 rounded-lg border border-luxury-gold/20">{viewingResume.hrNotes}</p>
+                        </div>
+                     )}
+                  </div>
+               </div>
+               
+               <div className="p-4 border-t border-zinc-800 flex justify-between bg-zinc-950">
+                  <Button onClick={() => setViewingResume(null)} variant="secondary">Close</Button>
+                  <Button onClick={() => { updateSection('resumes', viewingResume.id, {...viewingResume, status: 'Shortlisted'}); setViewingResume({...viewingResume, status: 'Shortlisted'}); showToast('✅ Shortlisted!'); }} className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold">Mark Shortlisted</Button>
+               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* Confirms */}
-      <ConfirmDialog
-        isOpen={deleteJobId !== null}
-        onClose={() => setDeleteJobId(null)}
-        onConfirm={handleJobDelete}
-        title="Delete Job Opening"
-        message="This will permanently delete this job position. Are you sure?"
-      />
-
-      <ConfirmDialog
-        isOpen={deleteResumeId !== null}
-        onClose={() => setDeleteResumeId(null)}
-        onConfirm={handleResumeDelete}
-        title="Delete Resume Application"
-        message="This will permanently remove this candidate application. Are you sure?"
+      <ConfirmDialog 
+        isOpen={!!deleteId} 
+        title="Confirm Deletion" 
+        message="Are you sure you want to delete this record? This action cannot be undone." 
+        onConfirm={handleDeleteConfirm} 
+        onClose={() => { setDeleteId(null); setDeletingType(null); }} 
       />
     </div>
   );
-};
+}

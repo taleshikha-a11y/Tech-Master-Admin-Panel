@@ -1,43 +1,22 @@
 import api from "./api";
 
 export const getMissionVision = () =>
-  api.get("/missionvision");
+  api.get("/mission-vision");
 
 export const createMissionVision = (data) =>
-  api.post("/missionvision", data);
+  api.post("/mission-vision", data);
 
 export const updateHero = (data) =>
-  api.put("/missionvision/hero", data);
+  api.put("/mission-vision/hero", data);
 
 export const updateMission = (data) =>
-  api.put("/missionvision/mission", data);
+  api.put("/mission-vision/mission", data);
 
 export const updateVision = (data) =>
-  api.put("/missionvision/vision", data);
-
-export const addCoreValue = (data) =>
-  api.post("/missionvision/core-values", data);
-
-export const updateCoreValue = (id, data) =>
-  api.put(`/missionvision/core-values/${id}`, data);
-
-export const deleteCoreValue = (id) =>
-  api.delete(`/missionvision/core-values/${id}`);
-
-export const addBrandPillar = (data) =>
-  api.post("/missionvision/brand-pillars", data);
-
-export const addRoadmap = (data) =>
-  api.post("/missionvision/roadmap", data);
+  api.put("/mission-vision/vision", data);
 
 export const updateCTA = (data) =>
-  api.put("/missionvision/cta", data);
+  api.put("/mission-vision/cta", data);
 
 export const updateSEO = (data) =>
-  api.put("/missionvision/seo", data);
-
-export const saveDraft = () =>
-  api.patch("/missionvision/draft");
-
-export const publish = () =>
-  api.patch("/missionvision/publish");
+  api.put("/mission-vision/seo", data);

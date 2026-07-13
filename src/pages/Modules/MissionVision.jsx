@@ -18,15 +18,8 @@ import {
   updateMission,
   updateVision,
   updateCTA,
-  updateSEO,
-  addCoreValue,
-  updateCoreValue,
-  deleteCoreValue,
-  addBrandPillar,
-  addRoadmap,
-  saveDraft,
-  publish
-} from "../../Services/missionVisionService";
+  updateSEO
+} from "../../Services/missionVisionServices";
 
 export const MissionVision = () => {
   const { updateSection } = useDatabase();

@@ -40,7 +40,7 @@ export const Input = ({
           placeholder={placeholder}
           value={value}
           onChange={onChange}
-          className={inputClass}
+          className={`${inputClass} ${type === 'date' ? '[color-scheme:dark]' : ''}`}
           required={required}
           {...props}
         />

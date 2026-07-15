@@ -18,13 +18,14 @@ import {
   updateMission,
   updateVision,
   updateCTA,
-  updateSEO
+  updateSEO,
+  updateSectionField,
 } from "../../Services/missionVisionServices";
 
 export const MissionVision = () => {
   const { updateSection } = useDatabase();
-
 const [mvData, setMvData] = useState({});
+
 
 useEffect(() => {
   fetchMissionVision();
@@ -34,10 +35,13 @@ const fetchMissionVision = async () => {
   try {
     const response = await getMissionVision();
 
-    setMvData(response.data?.data || response.data || {});
+    console.log("API Response:", response.data);
 
+    if (response.data && response.data.data) {
+        setMvData(response.data.data[0] || response.data.data);
+    }
   } catch (error) {
-    console.log("Mission Vision Fetch Error:", error);
+    console.log(error);
   }
 };
 
@@ -244,48 +248,74 @@ const fetchMissionVision = async () => {
     const listData = mvData[sectionKey] || [];
     const isEditing = activeEditorSection === sectionKey;
 
-    const handleSaveItem = () => {
+    const handleSaveItem = async () => {
       let nextList = [];
-      if (editingItemId) {
-        nextList = listData.map(item => item.id === editingItemId ? { ...item, ...draftItem } : item);
-        showToast("Item updated successfully.");
-      } else {
-        if (listData.length >= maxItems) {
-          showToast(`Maximum limit of ${maxItems} items reached.`, 'error');
-          return;
+      try {
+        if (editingItemId) {
+          nextList = listData.map(item => (item.id === editingItemId || item._id === editingItemId) ? { ...item, ...draftItem } : item);
+          showToast("Item updated successfully.");
+        } else {
+          if (listData.length >= maxItems) {
+            showToast(`Maximum limit of ${maxItems} items reached.`, 'error');
+            return;
+          }
+          const newItem = { ...draftItem, id: `item-${Date.now()}`, status: draftItem.status || 'Active', order: listData.length + 1 };
+          nextList = [...listData, newItem];
+          showToast("New item created.");
         }
-        const newItem = { ...draftItem, id: `item-${Date.now()}`, status: draftItem.status || 'Active', order: listData.length + 1 };
-        nextList = [...listData, newItem];
-        showToast("New item created.");
-      }
-      updateSection('missionVision', { [sectionKey]: nextList });
-      setActiveEditorSection(null);
-      setEditingItemId(null);
-      setDraftItem({});
-    };
-
-    const handleDeleteItem = (id) => {
-      if (window.confirm("Are you sure you want to delete this item?")) {
-        const nextList = listData.filter(item => item.id !== id);
+        
+        await updateSectionField(sectionKey, nextList);
         updateSection('missionVision', { [sectionKey]: nextList });
-        showToast("Item deleted.");
+        
+        setActiveEditorSection(null);
+        setEditingItemId(null);
+        setDraftItem({});
+        fetchMissionVision(); // Fetch latest from backend
+      } catch (error) {
+        console.error("List update error:", error);
+        showToast("Error updating list", "error");
       }
     };
 
-    const handleToggleStatus = (id, currentStatus) => {
-      const nextList = listData.map(item => item.id === id ? { ...item, status: currentStatus === 'Active' ? 'Inactive' : 'Active' } : item);
-      updateSection('missionVision', { [sectionKey]: nextList });
-      // Silent update on toggle switch, no notifications popped up!
+    const handleDeleteItem = async (id) => {
+      if (window.confirm("Are you sure you want to delete this item?")) {
+        try {
+          const nextList = listData.filter(item => item.id !== id && item._id !== id);
+          await updateSectionField(sectionKey, nextList);
+          updateSection('missionVision', { [sectionKey]: nextList });
+          showToast("Item deleted.");
+          fetchMissionVision(); // Fetch latest
+        } catch(e){
+          console.error(e);
+        }
+      }
     };
 
-    const handleMoveItem = (index, direction) => {
+    const handleToggleStatus = async (id, currentStatus) => {
+      try {
+        const nextList = listData.map(item => (item.id === id || item._id === id) ? { ...item, status: currentStatus === 'Active' ? 'Inactive' : 'Active' } : item);
+        await updateSectionField(sectionKey, nextList);
+        updateSection('missionVision', { [sectionKey]: nextList });
+        fetchMissionVision(); // Fetch latest
+      } catch(e) {
+        console.error(e);
+      }
+    };
+
+    const handleMoveItem = async (index, direction) => {
       const nextList = [...listData];
       const target = index + direction;
       if (target >= 0 && target < nextList.length) {
         const temp = nextList[index];
         nextList[index] = nextList[target];
         nextList[target] = temp;
-        updateSection('missionVision', { [sectionKey]: nextList });
+        try {
+          await updateSectionField(sectionKey, nextList);
+          updateSection('missionVision', { [sectionKey]: nextList });
+          fetchMissionVision(); // Fetch latest
+        } catch(e) {
+          console.error(e);
+        }
       }
     };
 
@@ -301,7 +331,7 @@ const fetchMissionVision = async () => {
 
     const handleStartEdit = (item) => {
       setActiveEditorSection(sectionKey);
-      setEditingItemId(item.id);
+      setEditingItemId(item._id || item.id);
       setDraftItem({ ...item });
     };
 
@@ -323,7 +353,7 @@ const fetchMissionVision = async () => {
                 </thead>
                 <tbody>
                   {listData.map((item, idx) => (
-                    <tr key={item.id || idx} className="border-b border-zinc-900/60 hover:bg-zinc-900/10 text-zinc-300">
+                    <tr key={item._id || item.id || idx} className="border-b border-zinc-900/60 hover:bg-zinc-900/10 text-zinc-300">
                       <td className="py-2.5 px-3 font-mono">{idx + 1}</td>
                       {displayColumns.map(col => (
                         <td key={col.key} className="py-2.5 px-3 max-w-[180px] truncate">
@@ -339,14 +369,14 @@ const fetchMissionVision = async () => {
                       <td className="py-2.5 px-3 text-center">
                         <Switch 
                           checked={item.status === 'Active'} 
-                          onChange={() => handleToggleStatus(item.id, item.status)}
+                          onChange={() => handleToggleStatus(item._id || item.id, item.status)}
                         />
                       </td>
                       <td className="py-2.5 px-3 text-right flex items-center justify-end gap-1.5 mt-0.5">
                         <button onClick={() => handleMoveItem(idx, -1)} disabled={idx === 0} className="p-1 hover:bg-zinc-900 rounded disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5" /></button>
                         <button onClick={() => handleMoveItem(idx, 1)} disabled={idx === listData.length - 1} className="p-1 hover:bg-zinc-900 rounded disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5" /></button>
                         <button onClick={() => handleStartEdit(item)} className="p-1 hover:bg-zinc-900 rounded text-amber-500"><Edit3 className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => handleDeleteItem(item.id)} className="p-1 hover:bg-zinc-900 rounded text-rose-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleDeleteItem(item._id || item.id)} className="p-1 hover:bg-zinc-900 rounded text-rose-500"><Trash2 className="w-3.5 h-3.5" /></button>
                       </td>
                     </tr>
                   ))}
@@ -449,8 +479,6 @@ const fetchMissionVision = async () => {
     { id: "vision", label: "Vision Core", icon: Eye },
     { id: "coreValues", label: "Core Values", icon: Lightbulb },
     { id: "brandPillars", label: "Brand Pillars", icon: Milestone },
-    { id: "roadmap", label: "Strategic Roadmap", icon: Compass },
-    { id: "cta", label: "CTA Banner", icon: Target },
     { id: "seo", label: "SEO Parameters", icon: Globe }
   ];
 
@@ -622,62 +650,47 @@ const fetchMissionVision = async () => {
                   )}
 
                   {sec.id === 'mission' && (
-                    <div className="flex flex-col gap-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input label="Mission Main Heading" value={missionForm.heading || ''} onChange={e => setMissionForm({ ...missionForm, heading: e.target.value })} />
-                        <Input label="Mission Sub Heading Tag" value={missionForm.subHeading || ''} onChange={e => setMissionForm({ ...missionForm, subHeading: e.target.value })} />
-                        <Input label="Left Accent Border Color" value={missionForm.leftBorderColor || ''} onChange={e => setMissionForm({ ...missionForm, leftBorderColor: e.target.value })} placeholder="e.g. #D4AF37" />
-                        <Input label="Mission Icon Code Symbol" value={missionForm.missionIcon || ''} onChange={e => setMissionForm({ ...missionForm, missionIcon: e.target.value })} placeholder="e.g. Target, Eye" />
-                        
-                        <Input label="CTA Button Text" value={missionForm.buttonText || ''} onChange={e => setMissionForm({ ...missionForm, buttonText: e.target.value })} />
-                        <Input label="CTA Redirect URL" value={missionForm.buttonUrl || ''} onChange={e => setMissionForm({ ...missionForm, buttonUrl: e.target.value })} />
-
-                        <div className="p-3 bg-zinc-900/30 border border-zinc-900 rounded flex items-center justify-between">
-                          <div>
-                            <span className="text-xs font-semibold text-zinc-400 block">Glassmorphism Effect</span>
-                            <span className="text-[9px] text-zinc-550">Toggles luxury glass overlay visual filters</span>
-                          </div>
-                          <Switch checked={missionForm.glassEffect || false} onChange={val => setMissionForm({ ...missionForm, glassEffect: val })} />
-                        </div>
-
-                        <div className="md:col-span-2">
-                          <Input label="Mission Copywrite Statement Description" textarea rows={3} value={missionForm.description || ''} onChange={e => setMissionForm({ ...missionForm, description: e.target.value })} />
-                        </div>
-
-                        <div className="md:col-span-2">
-                          {renderMediaUpload("Mission Cover Image", missionForm.missionImage, "missionImage")}
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end border-t border-zinc-900 pt-3">
-                        <Button onClick={() => handleSingleSave('mission', missionForm)} variant="primary" size="sm" className="bg-luxury-gold text-black font-bold">Save Mission Details</Button>
-                      </div>
+                    <div>
+                      {renderListManager({
+                        sectionKey: 'mission',
+                        displayColumns: [
+                          { key: 'heading', label: 'Heading' },
+                          { key: 'missionIcon', label: 'Icon' }
+                        ],
+                        fields: [
+                          { key: 'heading', label: 'Mission Main Heading', type: 'text' },
+                          { key: 'subHeading', label: 'Mission Sub Heading Tag', type: 'text' },
+                          { key: 'leftBorderColor', label: 'Left Accent Border Color (e.g. #D4AF37)', type: 'text' },
+                          { key: 'missionIcon', label: 'Mission Icon Code Symbol (e.g. Target, Eye)', type: 'text' },
+                          { key: 'buttonText', label: 'CTA Button Text', type: 'text' },
+                          { key: 'buttonUrl', label: 'CTA Redirect URL', type: 'text' },
+                          { key: 'glassEffect', label: 'Glassmorphism Effect', type: 'switch' },
+                          { key: 'description', label: 'Mission Copywrite Statement Description', type: 'textarea' },
+                          { key: 'missionImage', label: 'Mission Cover Image', type: 'upload' }
+                        ]
+                      })}
                     </div>
                   )}
 
                   {sec.id === 'vision' && (
-                    <div className="flex flex-col gap-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input label="Vision Main Heading" value={visionForm.heading || ''} onChange={e => setVisionForm({ ...visionForm, heading: e.target.value })} />
-                        <Input label="Vision Sub Heading Tag" value={visionForm.subHeading || ''} onChange={e => setVisionForm({ ...visionForm, subHeading: e.target.value })} />
-                        <Input label="Accent Tone Color Code" value={visionForm.accentColor || ''} onChange={e => setVisionForm({ ...visionForm, accentColor: e.target.value })} placeholder="e.g. #00E5FF" />
-                        <Input label="Vision Icon Code Symbol" value={visionForm.visionIcon || ''} onChange={e => setVisionForm({ ...visionForm, visionIcon: e.target.value })} placeholder="e.g. Eye, Compass" />
-                        
-                        <Input label="CTA Button Text" value={visionForm.buttonText || ''} onChange={e => setVisionForm({ ...visionForm, buttonText: e.target.value })} />
-                        <Input label="CTA Redirect URL" value={visionForm.buttonUrl || ''} onChange={e => setVisionForm({ ...visionForm, buttonUrl: e.target.value })} />
-
-                        <div className="md:col-span-2">
-                          <Input label="Vision Copywrite Statement Description" textarea rows={3} value={visionForm.description || ''} onChange={e => setVisionForm({ ...visionForm, description: e.target.value })} />
-                        </div>
-
-                        <div className="md:col-span-2">
-                          {renderMediaUpload("Vision Cover Image", visionForm.visionImage, "visionImage")}
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end border-t border-zinc-900 pt-3">
-                        <Button onClick={() => handleSingleSave('vision', visionForm)} variant="primary" size="sm" className="bg-luxury-gold text-black font-bold">Save Vision Details</Button>
-                      </div>
+                    <div>
+                      {renderListManager({
+                        sectionKey: 'vision',
+                        displayColumns: [
+                          { key: 'heading', label: 'Heading' },
+                          { key: 'visionIcon', label: 'Icon' }
+                        ],
+                        fields: [
+                          { key: 'heading', label: 'Vision Main Heading', type: 'text' },
+                          { key: 'subHeading', label: 'Vision Sub Heading Tag', type: 'text' },
+                          { key: 'accentColor', label: 'Accent Tone Color Code (e.g. #00E5FF)', type: 'text' },
+                          { key: 'visionIcon', label: 'Vision Icon Code Symbol (e.g. Eye, Compass)', type: 'text' },
+                          { key: 'buttonText', label: 'CTA Button Text', type: 'text' },
+                          { key: 'buttonUrl', label: 'CTA Redirect URL', type: 'text' },
+                          { key: 'description', label: 'Vision Copywrite Statement Description', type: 'textarea' },
+                          { key: 'visionImage', label: 'Vision Cover Image', type: 'upload' }
+                        ]
+                      })}
                     </div>
                   )}
 
@@ -720,66 +733,20 @@ const fetchMissionVision = async () => {
                     </div>
                   )}
 
-                  {sec.id === 'roadmap' && (
+                  {sec.id === 'seo' && (
                     <div>
                       {renderListManager({
-                        sectionKey: 'roadmap',
+                        sectionKey: 'seo',
                         displayColumns: [
-                          { key: 'quarter', label: 'Quarter' },
-                          { key: 'year', label: 'Year' },
-                          { key: 'title', label: 'Goal Title' }
+                          { key: 'metaTitle', label: 'Meta Title' }
                         ],
                         fields: [
-                          { key: 'quarter', label: 'Quarter Name (e.g. Q3, Q4)', type: 'text' },
-                          { key: 'year', label: 'Year Period', type: 'text' },
-                          { key: 'title', label: 'Timeline Goal Title', type: 'text' },
-                          { key: 'goal', label: 'Long Goal Description', type: 'text' },
-                          { key: 'accentColor', label: 'Timeline Node Accent Tone', type: 'text' },
-                          { key: 'status', label: 'Progress Status', type: 'select', options: ['Planning', 'In Progress', 'Completed', 'Upcoming'] },
-                          { key: 'description', label: 'Strategic Milestone Narrative Description', type: 'textarea' }
+                          { key: 'metaTitle', label: 'Page Meta Title', type: 'text' },
+                          { key: 'metaDescription', label: 'Meta Description', type: 'textarea' },
+                          { key: 'metaKeywords', label: 'Meta Keywords (comma separated)', type: 'text' },
+                          { key: 'ogImageUrl', label: 'Social Share / Open Graph Image', type: 'upload' }
                         ]
                       })}
-                    </div>
-                  )}
-
-                  {sec.id === 'cta' && (
-                    <div className="flex flex-col gap-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input label="CTA Title Heading" value={ctaForm.heading || ''} onChange={e => setCtaForm({ ...ctaForm, heading: e.target.value })} />
-                        <Input label="Primary Button Text" value={ctaForm.primaryButtonText || ''} onChange={e => setCtaForm({ ...ctaForm, primaryButtonText: e.target.value })} />
-                        <Input label="Primary Button Redirect Link" value={ctaForm.primaryButtonLink || ''} onChange={e => setCtaForm({ ...ctaForm, primaryButtonLink: e.target.value })} />
-                        <Input label="Secondary Button Text" value={ctaForm.secondaryButtonText || ''} onChange={e => setCtaForm({ ...ctaForm, secondaryButtonText: e.target.value })} />
-                        
-                        <Input label="Secondary Button Redirect Link" value={ctaForm.secondaryButtonLink || ''} onChange={e => setCtaForm({ ...ctaForm, secondaryButtonLink: e.target.value })} />
-                        <Input label="Background Gradient Style" value={ctaForm.backgroundGradient || ''} onChange={e => setCtaForm({ ...ctaForm, backgroundGradient: e.target.value })} placeholder="e.g. linear-gradient(to right, #000, #111)" />
-
-                        <div className="md:col-span-2">
-                          <Input label="CTA Section Copywriting Subtext Description" textarea rows={3} value={ctaForm.description || ''} onChange={e => setCtaForm({ ...ctaForm, description: e.target.value })} />
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end border-t border-zinc-900 pt-3">
-                        <Button onClick={() => handleSingleSave('cta', ctaForm)} variant="primary" size="sm" className="bg-luxury-gold text-black font-bold">Save CTA Parameters</Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {sec.id === 'seo' && (
-                    <div className="flex flex-col gap-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input label="SEO Meta Title" value={seoForm.metaTitle || ''} onChange={e => setSeoForm({ ...seoForm, metaTitle: e.target.value })} />
-                        <Input label="SEO Meta Keywords" value={seoForm.metaKeywords || ''} onChange={e => setSeoForm({ ...seoForm, metaKeywords: e.target.value })} placeholder="Mission, Vision, Roadmap" />
-                        <div className="md:col-span-2">
-                          <Input label="SEO Meta Description Content" textarea rows={2} value={seoForm.metaDescription || ''} onChange={e => setSeoForm({ ...seoForm, metaDescription: e.target.value })} />
-                        </div>
-                        <div className="md:col-span-2">
-                          {renderMediaUpload("OG Social Share Graphics Card", seoForm.ogImageUrl, "ogImageUrl")}
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end border-t border-zinc-900 pt-3">
-                        <Button onClick={() => handleSingleSave('seo', seoForm)} variant="primary" size="sm" className="bg-luxury-gold text-black font-bold">Save SEO Parameters</Button>
-                      </div>
                     </div>
                   )}
 

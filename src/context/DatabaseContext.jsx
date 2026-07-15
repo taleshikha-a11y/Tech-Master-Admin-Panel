@@ -102,7 +102,7 @@ export const DatabaseProvider = ({ children }) => {
         }
 
         // On-the-fly sanitisation for Contact, FAQ & SEO Arrays (Fixes object corruption)
-        ['contactFormFields', 'contactCategoriesSetup', 'contactSocialLinksSetup', 'faqCategories', 'pageSEO'].forEach(key => {
+        ['contactFormFields', 'contactCategoriesSetup', 'contactSocialLinksSetup', 'faqCategories', 'pageSEO', 'portfolio'].forEach(key => {
           if (merged[key] && !Array.isArray(merged[key])) {
              merged[key] = Object.values(merged[key]);
              if (merged[key].length === 0) {

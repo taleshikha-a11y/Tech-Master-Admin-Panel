@@ -80,11 +80,13 @@ export const WebsiteSettings = ({ setCurrentView }) => {
 
   const handleGeneralChange = (key, val) => {
     updateSection('settings', { [key]: val });
+    try { fetch(`http://localhost:5000/api/website-settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [key]: val }) }); } catch(err){}
   };
 
   const handleSocialChange = (key, val) => {
     const updatedSocials = { ...settingsData.socialLinks, [key]: val };
     updateSection('settings', { socialLinks: updatedSocials });
+    try { fetch(`http://localhost:5000/api/website-settings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ socialLinks: updatedSocials }) }); } catch(err){}
   };
 
   // Image Upload Handler

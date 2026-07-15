@@ -12,6 +12,7 @@ import {
   FileText, CheckCircle, Trash2, Edit2, X, Upload, 
   Settings, Layout, BarChart, Users, Tag, Bold, Italic, Link, Code
 } from 'lucide-react';
+import { getBlogs, createBlog, updateBlog, deleteBlog, getBlogSettings, updateBlogSettings } from '../../services/blogServices';
 
 /* =========================================================
    FILE UPLOAD SIMULATOR (BLOB)
@@ -22,22 +23,23 @@ const FileUpload = ({ label, value, onChange, accept="image/*" }) => {
     const file = e.target.files[0];
     if (file) {
       const url = URL.createObjectURL(file);
-      onChange(url);
+      // We pass the actual file for FormData and the url for preview
+      onChange(file, url);
     }
   };
   return (
     <div className="flex flex-col gap-1.5 w-full">
       <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{label}</label>
       <div className="flex items-center gap-3">
-        {value && (
+        {(value || value?.name) && (
           <div className="w-12 h-10 rounded border border-zinc-700 bg-black overflow-hidden flex-shrink-0 flex items-center justify-center">
-             <img src={value} className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'} />
+             <img src={typeof value === 'string' ? value : URL.createObjectURL(value)} className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'} />
           </div>
         )}
         <input type="file" ref={fileRef} className="hidden" accept={accept} onChange={handleFileChange} />
         <button type="button" onClick={() => fileRef.current?.click()} className="flex-1 border border-dashed border-zinc-700 hover:border-luxury-gold hover:text-luxury-gold bg-zinc-950/50 rounded-lg px-4 py-2 text-sm flex items-center justify-center transition-colors text-zinc-400 min-h-[42px] truncate">
           <Upload className="w-4 h-4 mr-2 flex-shrink-0" />
-          <span className="truncate">{value ? 'Change Media' : 'Upload File'}</span>
+          <span className="truncate">{value || value?.name ? 'Change Media' : 'Upload File'}</span>
         </button>
       </div>
     </div>
@@ -48,17 +50,55 @@ export const Blogs = () => {
   const { db, updateSection } = useDatabase();
   
   // Data Collections
-  const blogHero = db?.blogHero || {};
-  const featuredStrategy = db?.featuredStrategy || {};
-  const strategyStats = db?.strategyStats || [];
-  const strategyPillars = db?.strategyPillars || [];
-  const strategyPresets = db?.strategyPresets || [];
-  const quickBlueprint = db?.quickBlueprint || {};
-  const blogCategories = db?.blogCategories || [];
-  const latestInsights = db?.latestInsights || {};
-  const blogs = db?.blogs || [];
-  const blogSettings = db?.blogPageSettings || {};
-  const blogSEO = db?.blogSEO || {};
+  const [serverBlogs, setServerBlogs] = useState([]);
+  const [serverSettings, setServerSettings] = useState({});
+
+  React.useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [blogsRes, settingsRes] = await Promise.all([
+        getBlogs(),
+        getBlogSettings()
+      ]);
+      const fetchedBlogs = blogsRes.data?.data || blogsRes.data || blogsRes || [];
+      const fetchedSettingsArray = settingsRes.data?.data || settingsRes.data || settingsRes || [];
+      
+      setServerBlogs(Array.isArray(fetchedBlogs) ? fetchedBlogs.map(b => ({ ...b, id: b._id || b.id })) : []);
+      
+      const mappedSettings = {};
+      if (Array.isArray(fetchedSettingsArray)) {
+        fetchedSettingsArray.forEach(item => {
+          mappedSettings[item.key] = item.data;
+        });
+      }
+      setServerSettings(mappedSettings);
+      
+      // Sync Drafts
+      setHeroDraft(mappedSettings.blogHero || {});
+      setFeatDraft(mappedSettings.featuredStrategy || {});
+      setQuickDraft(mappedSettings.quickBlueprint || {});
+      setLatestDraft(mappedSettings.latestInsights || {});
+      setSettingsDraft(mappedSettings.blogPageSettings || {});
+      setSeoDraft(mappedSettings.blogSEO || {});
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const blogHero = serverSettings?.blogHero || {};
+  const featuredStrategy = serverSettings?.featuredStrategy || {};
+  const strategyStats = Array.isArray(serverSettings?.strategyStats) ? serverSettings.strategyStats : [];
+  const strategyPillars = Array.isArray(serverSettings?.strategyPillars) ? serverSettings.strategyPillars : [];
+  const strategyPresets = Array.isArray(serverSettings?.strategyPresets) ? serverSettings.strategyPresets : [];
+  const quickBlueprint = serverSettings?.quickBlueprint || {};
+  const blogCategories = Array.isArray(serverSettings?.blogCategories) ? serverSettings.blogCategories : [];
+  const latestInsights = serverSettings?.latestInsights || {};
+  const blogs = serverBlogs || [];
+  const blogSettings = serverSettings?.blogPageSettings || {};
+  const blogSEO = serverSettings?.blogSEO || {};
 
   const [toastMsg, setToastMsg] = useState('');
   const showToast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 3000); };
@@ -87,7 +127,17 @@ export const Blogs = () => {
     setEditingType(type);
     setEditingId(null);
     let init = { active: true, order: 1 };
-    if (type === 'blogs') init = { active: true, status: 'published', author: 'TechMaster', readTime: '5 min read', publishDate: new Date().toISOString().split('T')[0] };
+    if (type === 'blogs') {
+      const defaultCategory = blogCategories.length ? blogCategories[0].name : 'Marketing';
+      init = { 
+        active: true, 
+        status: 'published', 
+        author: 'TechMaster', 
+        readTime: '5 min read', 
+        publishDate: new Date().toISOString().split('T')[0],
+        category: defaultCategory
+      };
+    }
     setDraftItem(init);
     setIsEditorOpen(true);
   };
@@ -99,29 +149,57 @@ export const Blogs = () => {
     setIsEditorOpen(true);
   };
 
-  const handleSaveItem = (e) => {
+  const handleSaveItem = async (e) => {
     e.preventDefault();
     const collectionKey = editingType;
-    const currentList = db[collectionKey] || [];
     let nextList = [];
-    if (editingId) {
-      nextList = currentList.map(item => item.id === editingId ? { ...draftItem, id: item.id } : item);
-    } else {
-      nextList = [...currentList, { ...draftItem, id: `${editingType}-${Date.now()}` }];
+    
+    try {
+      if (editingType === 'blogs') {
+        if (editingId) {
+          await updateBlog(editingId, draftItem);
+        } else {
+          await createBlog(draftItem);
+        }
+      } else {
+        const currentList = Array.isArray(serverSettings[collectionKey]) ? serverSettings[collectionKey] : [];
+        if (editingId) {
+          nextList = currentList.map(item => item.id === editingId ? { ...draftItem, id: item.id } : item);
+        } else {
+          nextList = [...currentList, { ...draftItem, id: `${editingType}-${Date.now()}` }];
+        }
+        await updateBlogSettings({ key: collectionKey, data: nextList });
+      }
+      await fetchData();
+      updateSection(collectionKey, null, editingType === 'blogs' ? draftItem : nextList); // Keep DatabaseContext happy
+      setIsEditorOpen(false);
+      showToast(`✅ Saved ${editingType}.`);
+    } catch (err) {
+      console.error("Backend sync failed", err);
+      showToast("❌ Sync failed.");
     }
-    updateSection(collectionKey, null, nextList);
-    setIsEditorOpen(false);
-    showToast(`✅ Saved ${editingType}.`);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deleteId) {
       const collectionKey = deletingType;
-      const currentList = db[collectionKey] || [];
-      updateSection(collectionKey, null, currentList.filter(item => item.id !== deleteId));
-      setDeleteId(null);
-      setDeletingType(null);
-      showToast("✅ Record deleted.");
+      try {
+        if (collectionKey === 'blogs') {
+          await deleteBlog(deleteId);
+        } else {
+          const currentList = serverSettings[collectionKey] || [];
+          const nextList = currentList.filter(item => item.id !== deleteId);
+          await updateBlogSettings({ key: collectionKey, data: nextList });
+        }
+        await fetchData();
+        updateSection(collectionKey, null, null);
+        setDeleteId(null);
+        setDeletingType(null);
+        showToast("✅ Record deleted.");
+      } catch (err) {
+        console.error(err);
+        showToast("❌ Delete failed.");
+      }
     }
   };
 
@@ -228,7 +306,7 @@ export const Blogs = () => {
                     <Switch label="Glow Effect" checked={heroDraft.glowEnabled !== false} onChange={v => setHeroDraft(p => ({...p, glowEnabled: v}))} />
                   </div>
                 </div>
-                <div className="flex justify-end mt-6"><Button onClick={() => { updateSection('blogHero', null, heroDraft); showToast('✅ Hero Saved'); }} className="bg-luxury-gold text-black">Save Settings</Button></div>
+                <div className="flex justify-end mt-6"><Button onClick={() => { updateBlogSettings({ key: 'blogHero', data: heroDraft }).then(() => { updateSection('blogHero', null, heroDraft); showToast('✅ Hero Saved'); }).catch(console.error); }} className="bg-luxury-gold text-black">Save Settings</Button></div>
               </div>
             </motion.div>
           )}
@@ -237,7 +315,7 @@ export const Blogs = () => {
              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-8">
                 {/* Intro Texts */}
                 <div className="bg-zinc-950/40 border border-zinc-800 rounded-2xl p-6">
-                  <div className="flex justify-between mb-6"><h3 className="text-xl font-serif">Featured Strategy Intro</h3><Switch checked={featDraft.active !== false} onChange={v => { setFeatDraft(p => ({...p, active: v})); updateSection('featuredStrategy', null, {...featDraft, active: v}); }} /></div>
+                  <div className="flex justify-between mb-6"><h3 className="text-xl font-serif">Featured Strategy Intro</h3><Switch checked={featDraft.active !== false} onChange={v => { setFeatDraft(p => ({...p, active: v})); updateBlogSettings({ key: 'featuredStrategy', data: {...featDraft, active: v} }).then(() => updateSection('featuredStrategy', null, {...featDraft, active: v})).catch(console.error); }} /></div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <Input label="Badge" value={featDraft.badge || ''} onChange={e => setFeatDraft(p => ({...p, badge: e.target.value}))} />
                     <Input label="Title Start" value={featDraft.titleLine1 || ''} onChange={e => setFeatDraft(p => ({...p, titleLine1: e.target.value}))} />
@@ -245,7 +323,18 @@ export const Blogs = () => {
                     <Input label="Title End" value={featDraft.titleLine3 || ''} onChange={e => setFeatDraft(p => ({...p, titleLine3: e.target.value}))} />
                     <div className="md:col-span-2"><Input label="Description" value={featDraft.description || ''} onChange={e => setFeatDraft(p => ({...p, description: e.target.value}))} /></div>
                   </div>
-                  <Button onClick={() => { updateSection('featuredStrategy', null, featDraft); showToast('✅ Strategy Intro Saved'); }}>Save Intro</Button>
+                  <Button onClick={() => { updateBlogSettings({ key: 'featuredStrategy', data: featDraft }).then(() => { updateSection('featuredStrategy', null, featDraft); showToast('✅ Strategy Intro Saved'); }).catch(console.error); }}>Save Intro</Button>
+                </div>
+
+                {/* CTA Quick Blueprint */}
+                <div className="bg-zinc-950/40 border border-zinc-800 rounded-2xl p-6">
+                  <div className="flex justify-between mb-6"><h3 className="text-xl font-serif">Quick Blueprint CTA</h3><Switch checked={quickDraft.active !== false} onChange={v => { setQuickDraft(p => ({...p, active: v})); updateBlogSettings({ key: 'quickBlueprint', data: {...quickDraft, active: v} }).then(() => updateSection('quickBlueprint', null, {...quickDraft, active: v})).catch(console.error); }} /></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <Input label="Title" value={quickDraft.title || ''} onChange={e => setQuickDraft(p => ({...p, title: e.target.value}))} />
+                    <Input label="Button Text" value={quickDraft.btnText || ''} onChange={e => setQuickDraft(p => ({...p, btnText: e.target.value}))} />
+                    <div className="md:col-span-2"><Input label="Description" value={quickDraft.description || ''} onChange={e => setQuickDraft(p => ({...p, description: e.target.value}))} /></div>
+                  </div>
+                  <Button onClick={() => { updateBlogSettings({ key: 'quickBlueprint', data: quickDraft }).then(() => { updateSection('quickBlueprint', null, quickDraft); showToast('✅ CTA Saved'); }).catch(console.error); }}>Save CTA</Button>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -286,7 +375,7 @@ export const Blogs = () => {
                       <Input label="Section Title" value={latestDraft.title || ''} onChange={e => setLatestDraft(p => ({...p, title: e.target.value}))} />
                       <Input label="Subtitle" value={latestDraft.subtitle || ''} onChange={e => setLatestDraft(p => ({...p, subtitle: e.target.value}))} />
                       <Switch label="Show Latest Insights Block" checked={latestDraft.active !== false} onChange={v => setLatestDraft(p => ({...p, active: v}))} />
-                      <Button onClick={() => { updateSection('latestInsights', null, latestDraft); showToast('Saved'); }}>Save Section</Button>
+                      <Button onClick={() => { updateBlogSettings({ key: 'latestInsights', data: latestDraft }).then(() => { updateSection('latestInsights', null, latestDraft); showToast('✅ Saved'); }).catch(console.error); }}>Save Section</Button>
                     </div>
                   </div>
 
@@ -300,7 +389,7 @@ export const Blogs = () => {
                            <Switch checked={settingsDraft[key] !== false} onChange={v => setSettingsDraft(p => ({...p, [key]: v}))} />
                          </div>
                       ))}
-                      <Button onClick={() => { updateSection('blogPageSettings', null, settingsDraft); showToast('Saved'); }} className="mt-2">Save Controls</Button>
+                      <Button onClick={() => { updateBlogSettings({ key: 'blogPageSettings', data: settingsDraft }).then(() => { updateSection('blogPageSettings', null, settingsDraft); showToast('✅ Saved'); }).catch(console.error); }} className="mt-2">Save Controls</Button>
                     </div>
                   </div>
 
@@ -312,7 +401,7 @@ export const Blogs = () => {
                       <Input label="Keywords" value={seoDraft.keywords || ''} onChange={e => setSeoDraft(p => ({...p, keywords: e.target.value}))} />
                       <div className="md:col-span-2"><Input label="Meta Description" textarea rows={2} value={seoDraft.metaDescription || ''} onChange={e => setSeoDraft(p => ({...p, metaDescription: e.target.value}))} /></div>
                     </div>
-                    <Button onClick={() => { updateSection('blogSEO', null, seoDraft); showToast('Saved'); }} className="mt-4">Save SEO</Button>
+                    <Button onClick={() => { updateBlogSettings({ key: 'blogSEO', data: seoDraft }).then(() => { updateSection('blogSEO', null, seoDraft); showToast('✅ Saved'); }).catch(console.error); }} className="mt-4">Save SEO</Button>
                   </div>
                 </div>
              </motion.div>
@@ -347,7 +436,7 @@ export const Blogs = () => {
                    <Input label="Publish Date" type="date" value={draftItem.publishDate || ''} onChange={e => setDraftItem(p => ({...p, publishDate: e.target.value}))} />
                    <Input label="Read Time (e.g. 5 min)" value={draftItem.readTime || ''} onChange={e => setDraftItem(p => ({...p, readTime: e.target.value}))} />
                    <Input label="Author Name" value={draftItem.author || ''} onChange={e => setDraftItem(p => ({...p, author: e.target.value}))} />
-                   <FileUpload label="Cover Image" value={draftItem.coverImage || ''} onChange={url => setDraftItem(p => ({...p, coverImage: url}))} />
+                   <FileUpload label="Cover Image" value={draftItem.coverImage || ''} onChange={(file, url) => setDraftItem(p => ({...p, coverImage: file}))} />
                    <div className="mt-2 space-y-2">
                      <Switch label="Active/Visible" checked={draftItem.active !== false} onChange={v => setDraftItem(p => ({...p, active: v}))} />
                      <Switch label="Featured Post" checked={draftItem.featured || false} onChange={v => setDraftItem(p => ({...p, featured: v}))} />

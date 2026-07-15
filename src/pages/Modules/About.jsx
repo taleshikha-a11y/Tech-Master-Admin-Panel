@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMediaManager } from "../../context/MediaContext";
-import { useDatabase } from '../../context/DatabaseContext';
+import { getAboutData, updateAboutSection, publishAbout } from '../../Services/aboutServices';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Switch } from '../../components/ui/Switch';
@@ -9,13 +9,13 @@ import { Input } from '../../components/ui/Input';
 import { 
   User, Compass, Eye, ShieldCheck, Film, Plus, Save, RefreshCw, 
   ChevronDown, ChevronRight, Edit3, Trash2, Image as ImageIcon, ArrowUp, ArrowDown, 
-  X, UploadCloud, Link as LinkIcon, AlertCircle, Settings, 
+  X, UploadCloud, Link as LinkIcon, AlertCircle, Settings, Heart,
   Star, Trophy, Award, Briefcase, Target, HelpCircle, Users, FileText, Globe, BarChart2
 } from 'lucide-react';
 
 export const About = () => {
-  const { db, updateSection } = useDatabase();
-  const aboutData = db?.about || {};
+  const [aboutData, setAboutData] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
 
   // Collapsible cards state
   const [expandedCards, setExpandedCards] = useState({
@@ -23,12 +23,14 @@ export const About = () => {
     philosophy: false,
     mission: false,
     vision: false,
+    coreValues: false,
     story: false,
     highlights: false,
     achievements: false,
     awards: false,
     experience: false,
-    seo: false
+    seo: false,
+    futureGoals: false
   });
 
   const toggleCard = (cardId) => {
@@ -47,8 +49,12 @@ export const About = () => {
   const [philosophyForm, setPhilosophyForm] = useState(aboutData?.philosophy || {});
   const [missionForm, setMissionForm] = useState(aboutData?.mission || {});
   const [visionForm, setVisionForm] = useState(aboutData?.vision || {});
+  const [coreValuesForm, setCoreValuesForm] = useState(aboutData?.coreValues || {});
   const [storyForm, setStoryForm] = useState(aboutData?.story || {});
   const [seoForm, setSeoForm] = useState(aboutData?.seo || {});
+  const [ctaForm, setCtaForm] = useState(aboutData?.cta || {});
+  const [futureGoalsForm, setFutureGoalsForm] = useState(aboutData?.futureGoals || {});
+  const [coreCollabForm, setCoreCollabForm] = useState(aboutData?.coreCollaborations || {});
 
   // List editor states
   const [activeEditorSection, setActiveEditorSection] = useState(null); 
@@ -62,30 +68,64 @@ export const About = () => {
   const [showCropModal, setShowCropModal] = useState(false);
   const [cropTargetField, setCropTargetField] = useState(null);
 
+  useEffect(() => {
+    fetchAboutData();
+  }, []);
+
+  const fetchAboutData = async () => {
+    try {
+      setIsLoading(true);
+      const res = await getAboutData();
+      if (res.data) {
+        setAboutData(res.data);
+        setIntroForm(res.data.introduction || {});
+        setPhilosophyForm(res.data.philosophy || {});
+        setMissionForm(res.data.mission || {});
+        setVisionForm(res.data.vision || {});
+        setCoreValuesForm(res.data.coreValues || {});
+        setStoryForm(res.data.story || {});
+        setSeoForm(res.data.seo || {});
+        setCtaForm(res.data.cta || {});
+        setFutureGoalsForm(res.data.futureGoals || {});
+        setCoreCollabForm(res.data.coreCollaborations || {});
+      }
+    } catch (error) {
+      showToast("Failed to fetch about data", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const { openMediaManager } = useMediaManager();
   const simulateMediaUpload = (targetKey, isObjectForm = false, objectSetter = null) => {
     openMediaManager({
       onSelect: (url) => {
-        if (activeEditorSection) {
-          setDraftItem(prev => ({ ...prev, [targetKey]: url }));
-        } else {
-          setIntroForm(prev => (targetKey in prev || ['profileImageUrl', 'mobileImageUrl'].includes(targetKey) ? { ...prev, [targetKey]: url } : prev));
-          setPhilosophyForm(prev => (targetKey in prev || ['iconUrl'].includes(targetKey) ? { ...prev, [targetKey]: url } : prev));
-          setMissionForm(prev => (targetKey in prev || ['iconUrl'].includes(targetKey) ? { ...prev, [targetKey]: url } : prev));
-          setVisionForm(prev => (targetKey in prev || ['iconUrl'].includes(targetKey) ? { ...prev, [targetKey]: url } : prev));
-          setStoryForm(prev => (targetKey in prev || ['imageUrl'].includes(targetKey) ? { ...prev, [targetKey]: url } : prev));
-          setSeoForm(prev => (targetKey in prev || ['ogImageUrl'].includes(targetKey) ? { ...prev, [targetKey]: url } : prev));
-        }
+          if (activeEditorSection) {
+            setDraftItem(prev => ({ ...prev, [targetKey]: url }));
+          } else {
+            setIntroForm(prev => (targetKey in prev || ['profileImageUrl', 'mobileImageUrl'].includes(targetKey) ? { ...prev, [targetKey]: url } : prev));
+            setPhilosophyForm(prev => (targetKey in prev || ['philosophyImageUrl'].includes(targetKey) ? { ...prev, [targetKey]: url } : prev));
+            setMissionForm(prev => (targetKey in prev || ['missionImageUrl'].includes(targetKey) ? { ...prev, [targetKey]: url } : prev));
+            setVisionForm(prev => (targetKey in prev || ['visionImageUrl'].includes(targetKey) ? { ...prev, [targetKey]: url } : prev));
+            setCoreValuesForm(prev => (targetKey in prev || ['coreValuesImageUrl'].includes(targetKey) ? { ...prev, [targetKey]: url } : prev));
+            setStoryForm(prev => (targetKey in prev || ['imageUrl'].includes(targetKey) ? { ...prev, [targetKey]: url } : prev));
+            setSeoForm(prev => (targetKey in prev || ['ogImageUrl'].includes(targetKey) ? { ...prev, [targetKey]: url } : prev));
+          }
       }
     });
   };
 
-  const handleSingleSave = (sectionKey, data) => {
-    updateSection('about', { [sectionKey]: data });
-    showToast(`${sectionKey.toUpperCase()} section parameters updated successfully.`);
+  const handleSingleSave = async (sectionKey, data) => {
+    try {
+      await updateAboutSection(sectionKey, data);
+      showToast(`${sectionKey.toUpperCase()} section parameters updated successfully.`);
+      fetchAboutData();
+    } catch (err) {
+      showToast(`Failed to update ${sectionKey}.`, 'error');
+    }
   };
 
-  const updateSectionMeta = (secId, key, val) => {
+  const updateSectionMeta = async (secId, key, val) => {
     const currentSettings = aboutData.sectionSettings || {};
     const updatedSettings = {
       ...currentSettings,
@@ -94,8 +134,13 @@ export const About = () => {
         [key]: val
       }
     };
-    updateSection('about', { sectionSettings: updatedSettings });
-    showToast(`Section ${secId.toUpperCase()} settings modified.`);
+    try {
+      await updateAboutSection('sectionSettings', updatedSettings);
+      showToast(`Section ${secId.toUpperCase()} settings modified.`);
+      fetchAboutData();
+    } catch (err) {
+      showToast('Failed to update section settings.', 'error');
+    }
   };
 
   // Reusable Media Upload Component with preview, replace, crop, and remove triggers
@@ -138,6 +183,7 @@ export const About = () => {
                     setPhilosophyForm(prev => (fieldKey in prev ? { ...prev, [fieldKey]: "" } : prev));
                     setMissionForm(prev => (fieldKey in prev ? { ...prev, [fieldKey]: "" } : prev));
                     setVisionForm(prev => (fieldKey in prev ? { ...prev, [fieldKey]: "" } : prev));
+                    setCoreValuesForm(prev => (fieldKey in prev ? { ...prev, [fieldKey]: "" } : prev));
                     setStoryForm(prev => (fieldKey in prev ? { ...prev, [fieldKey]: "" } : prev));
                     setSeoForm(prev => (fieldKey in prev ? { ...prev, [fieldKey]: "" } : prev));
                   }
@@ -186,44 +232,63 @@ export const About = () => {
     const listData = aboutData[sectionKey] || [];
     const isEditing = activeEditorSection === sectionKey;
 
-    const handleSaveItem = () => {
+    const handleSaveItem = async () => {
       let nextList = [];
       if (editingItemId) {
         nextList = listData.map(item => item.id === editingItemId ? { ...item, ...draftItem } : item);
-        showToast("Item updated successfully.");
       } else {
         const newItem = { ...draftItem, id: `item-${Date.now()}`, status: draftItem.status || 'Active', order: listData.length + 1 };
         nextList = [...listData, newItem];
-        showToast("New item created.");
       }
-      updateSection('about', { [sectionKey]: nextList });
-      setActiveEditorSection(null);
-      setEditingItemId(null);
-      setDraftItem({});
+      try {
+        await updateAboutSection(sectionKey, nextList);
+        showToast(editingItemId ? "Item updated successfully." : "New item created.");
+        setActiveEditorSection(null);
+        setEditingItemId(null);
+        setDraftItem({});
+        fetchAboutData();
+      } catch (err) {
+        showToast("Failed to save item.", 'error');
+      }
     };
 
-    const handleDeleteItem = (id) => {
+    const handleDeleteItem = async (id) => {
       if (window.confirm("Are you sure you want to delete this item?")) {
         const nextList = listData.filter(item => item.id !== id);
-        updateSection('about', { [sectionKey]: nextList });
-        showToast("Item deleted.");
+        try {
+          await updateAboutSection(sectionKey, nextList);
+          showToast("Item deleted.");
+          fetchAboutData();
+        } catch (err) {
+          showToast("Failed to delete item.", 'error');
+        }
       }
     };
 
-    const handleToggleStatus = (id, currentStatus) => {
+    const handleToggleStatus = async (id, currentStatus) => {
       const nextList = listData.map(item => item.id === id ? { ...item, status: currentStatus === 'Active' ? 'Inactive' : 'Active' } : item);
-      updateSection('about', { [sectionKey]: nextList });
-      showToast("Visibility state updated.");
+      try {
+        await updateAboutSection(sectionKey, nextList);
+        showToast("Visibility state updated.");
+        fetchAboutData();
+      } catch (err) {
+        showToast("Failed to update status.", "error");
+      }
     };
 
-    const handleMoveItem = (index, direction) => {
+    const handleMoveItem = async (index, direction) => {
       const nextList = [...listData];
       const target = index + direction;
       if (target >= 0 && target < nextList.length) {
         const temp = nextList[index];
         nextList[index] = nextList[target];
         nextList[target] = temp;
-        updateSection('about', { [sectionKey]: nextList });
+        try {
+          await updateAboutSection(sectionKey, nextList);
+          fetchAboutData();
+        } catch (err) {
+          showToast("Failed to reorder items.", "error");
+        }
       }
     };
 
@@ -362,17 +427,19 @@ export const About = () => {
     );
   };
 
-  // Fixed 10 sections definitions
+  // Fixed sections definitions
   const sectionsList = [
     { id: "introduction", label: "Introduction", icon: User },
     { id: "philosophy", label: "Philosophy", icon: Star },
     { id: "mission", label: "Mission", icon: Target },
     { id: "vision", label: "Vision", icon: Eye },
+    { id: "coreValues", label: "Core Values", icon: Heart },
     { id: "story", label: "Story", icon: Compass },
     { id: "highlights", label: "Key Highlights", icon: BarChart2 },
     { id: "achievements", label: "Achievements", icon: Trophy },
     { id: "awards", label: "Awards", icon: Award },
     { id: "experience", label: "Experience", icon: Briefcase },
+    { id: "futureGoals", label: "Future Goals", icon: Target },
     { id: "seo", label: "SEO Metadata", icon: Globe }
   ];
 
@@ -439,13 +506,14 @@ export const About = () => {
         </div>
         
         <div className="flex items-center gap-2 flex-wrap">
-          <Button onClick={() => showToast("💾 About Draft Saved Successfully!")} variant="secondary" size="sm" className="gap-1.5 text-xs border border-zinc-800 text-amber-500/90">
-            <Save className="w-3.5 h-3.5" /> <span>Save Draft</span>
-          </Button>
-          <Button onClick={() => { if(window.confirm("Reset unsaved changes?")) window.location.reload(); }} variant="secondary" size="sm" className="gap-1.5 text-xs border border-zinc-800 text-zinc-400 hover:text-rose-400">
-            <RefreshCw className="w-3.5 h-3.5" /> <span>Reset</span>
-          </Button>
-          <Button onClick={() => showToast("🚀 Public production server updated successfully. Page is Live!")} variant="primary" size="sm" className="gap-1.5 text-xs bg-gradient-to-r from-luxury-gold to-luxury-darkgold text-black font-bold shadow-gold-glow">
+          <Button onClick={async () => {
+            try {
+              await publishAbout("Published");
+              showToast("🚀 Public production server updated successfully. Page is Live!");
+            } catch (err) {
+              showToast("Failed to publish page.", "error");
+            }
+          }} variant="primary" size="sm" className="gap-1.5 text-xs bg-gradient-to-r from-luxury-gold to-luxury-darkgold text-black font-bold shadow-gold-glow">
             <span>Publish Live</span>
           </Button>
         </div>
@@ -552,13 +620,36 @@ export const About = () => {
                     </div>
                   )}
 
+                  {sec.id === 'futureGoals' && (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Input label="Tagline (e.g. LOOKING AHEAD)" value={futureGoalsForm.tagline || ''} onChange={e => setFutureGoalsForm({ ...futureGoalsForm, tagline: e.target.value })} />
+                        <Input label="Headline" value={futureGoalsForm.headline || ''} onChange={e => setFutureGoalsForm({ ...futureGoalsForm, headline: e.target.value })} />
+                        <div className="md:col-span-2">
+                          <Input label="Paragraph 1" textarea rows={3} value={futureGoalsForm.paragraph1 || ''} onChange={e => setFutureGoalsForm({ ...futureGoalsForm, paragraph1: e.target.value })} />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Input label="Paragraph 2" textarea rows={3} value={futureGoalsForm.paragraph2 || ''} onChange={e => setFutureGoalsForm({ ...futureGoalsForm, paragraph2: e.target.value })} />
+                        </div>
+                        <div className="md:col-span-2">
+                          {renderMediaUpload("Future Goals Cover Image", futureGoalsForm.imageUrl, "imageUrl")}
+                        </div>
+                      </div>
+                      <div className="flex justify-end border-t border-zinc-900 pt-3">
+                        <Button onClick={() => handleSingleSave('futureGoals', futureGoalsForm)} variant="primary" size="sm" className="bg-luxury-gold text-black font-bold">Save Future Goals</Button>
+                      </div>
+                    </div>
+                  )}
+
                   {sec.id === 'philosophy' && (
                     <div className="flex flex-col gap-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input label="Philosophy Title" value={philosophyForm.title || ''} onChange={e => setPhilosophyForm({ ...philosophyForm, title: e.target.value })} />
-                        <Input label="Philosophy Icon Code" value={philosophyForm.iconUrl || ''} onChange={e => setPhilosophyForm({ ...philosophyForm, iconUrl: e.target.value })} placeholder="e.g. Sparkles, Compass" />
                         <div className="md:col-span-2">
                           <Input label="Philosophy Description Statement" textarea rows={3} value={philosophyForm.description || ''} onChange={e => setPhilosophyForm({ ...philosophyForm, description: e.target.value })} />
+                        </div>
+                        <div className="md:col-span-2">
+                          {renderMediaUpload("Philosophy Cover Image", philosophyForm.philosophyImageUrl, "philosophyImageUrl")}
                         </div>
                       </div>
                       <div className="flex justify-end border-t border-zinc-900 pt-3">
@@ -571,9 +662,11 @@ export const About = () => {
                     <div className="flex flex-col gap-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input label="Mission Title" value={missionForm.title || ''} onChange={e => setMissionForm({ ...missionForm, title: e.target.value })} />
-                        <Input label="Mission Icon Code" value={missionForm.iconUrl || ''} onChange={e => setMissionForm({ ...missionForm, iconUrl: e.target.value })} placeholder="e.g. Target, Eye" />
                         <div className="md:col-span-2">
                           <Input label="Mission Description Statement" textarea rows={3} value={missionForm.description || ''} onChange={e => setMissionForm({ ...missionForm, description: e.target.value })} />
+                        </div>
+                        <div className="md:col-span-2">
+                          {renderMediaUpload("Mission Cover Image", missionForm.missionImageUrl, "missionImageUrl")}
                         </div>
                       </div>
                       <div className="flex justify-end border-t border-zinc-900 pt-3">
@@ -586,13 +679,32 @@ export const About = () => {
                     <div className="flex flex-col gap-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input label="Vision Title" value={visionForm.title || ''} onChange={e => setVisionForm({ ...visionForm, title: e.target.value })} />
-                        <Input label="Vision Icon Code" value={visionForm.iconUrl || ''} onChange={e => setVisionForm({ ...visionForm, iconUrl: e.target.value })} placeholder="e.g. Eye, Compass" />
                         <div className="md:col-span-2">
                           <Input label="Vision Description Statement" textarea rows={3} value={visionForm.description || ''} onChange={e => setVisionForm({ ...visionForm, description: e.target.value })} />
+                        </div>
+                        <div className="md:col-span-2">
+                          {renderMediaUpload("Vision Cover Image", visionForm.visionImageUrl, "visionImageUrl")}
                         </div>
                       </div>
                       <div className="flex justify-end border-t border-zinc-900 pt-3">
                         <Button onClick={() => handleSingleSave('vision', visionForm)} variant="primary" size="sm" className="bg-luxury-gold text-black font-bold">Save Vision Details</Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {sec.id === 'coreValues' && (
+                    <div className="flex flex-col gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input label="Core Values Title" value={coreValuesForm.title || ''} onChange={e => setCoreValuesForm({ ...coreValuesForm, title: e.target.value })} />
+                        <div className="md:col-span-2">
+                          <Input label="Core Values Description Statement" textarea rows={3} value={coreValuesForm.description || ''} onChange={e => setCoreValuesForm({ ...coreValuesForm, description: e.target.value })} />
+                        </div>
+                        <div className="md:col-span-2">
+                          {renderMediaUpload("Core Values Cover Image", coreValuesForm.coreValuesImageUrl, "coreValuesImageUrl")}
+                        </div>
+                      </div>
+                      <div className="flex justify-end border-t border-zinc-900 pt-3">
+                        <Button onClick={() => handleSingleSave('coreValues', coreValuesForm)} variant="primary" size="sm" className="bg-luxury-gold text-black font-bold">Save Core Values Details</Button>
                       </div>
                     </div>
                   )}
@@ -621,13 +733,13 @@ export const About = () => {
                         sectionKey: 'highlights',
                         displayColumns: [
                           { key: 'label', label: 'Label' },
-                          { key: 'number', label: 'Counter' },
+                          { key: 'value', label: 'Counter' },
                           { key: 'suffix', label: 'Suffix' }
                         ],
                         fields: [
-                          { key: 'number', label: 'Number (Value)', type: 'text' },
+                          { key: 'value', label: 'Number (Value)', type: 'text' },
                           { key: 'prefix', label: 'Prefix (e.g. $, Vol)', type: 'text', optional: true },
-                          { key: 'suffix', label: 'Suffix (e.g. +, M, %)', type: 'text' },
+                          { key: 'suffix', label: 'Suffix (e.g. +, M, %)', type: 'text', optional: true },
                           { key: 'label', label: 'Counter Label Description', type: 'text' }
                         ]
                       })}
@@ -657,12 +769,12 @@ export const About = () => {
                       {renderListManager({
                         sectionKey: 'awards',
                         displayColumns: [
-                          { key: 'name', label: 'Award Name' },
+                          { key: 'title', label: 'Award Name' },
                           { key: 'organization', label: 'Organization' },
                           { key: 'year', label: 'Year' }
                         ],
                         fields: [
-                          { key: 'name', label: 'Award Title Name', type: 'text' },
+                          { key: 'title', label: 'Award Title Name', type: 'text' },
                           { key: 'organization', label: 'Awarding Corporate Body / Organization', type: 'text' },
                           { key: 'year', label: 'Year Won', type: 'text' },
                           { key: 'description', label: 'Short description details', type: 'textarea' },
@@ -677,18 +789,18 @@ export const About = () => {
                       {renderListManager({
                         sectionKey: 'experience',
                         displayColumns: [
-                          { key: 'companyName', label: 'Company Name' },
-                          { key: 'designation', label: 'Designation Role' },
+                          { key: 'company', label: 'Company Name' },
+                          { key: 'position', label: 'Designation Role' },
                           { key: 'location', label: 'Location' }
                         ],
                         fields: [
-                          { key: 'companyName', label: 'Company / Organization Name', type: 'text' },
-                          { key: 'designation', label: 'Professional Designation Role', type: 'text' },
-                          { key: 'location', label: 'Office Location Location (e.g. Paris, France)', type: 'text' },
-                          { key: 'startDate', label: 'Tenure Start Date', type: 'text' },
-                          { key: 'endDate', label: 'Tenure End Date (e.g. Present)', type: 'text' },
-                          { key: 'description', label: 'Job description narrative', type: 'textarea' },
-                          { key: 'logoUrl', label: 'Company Logo Image (Upload)', type: 'upload' }
+                          { key: 'company', label: 'Company / Organization Name', type: 'text' },
+                          { key: 'position', label: 'Professional Designation Role', type: 'text' },
+                          { key: 'location', label: 'Office Location Location (e.g. Paris, France)', type: 'text', optional: true },
+                          { key: 'startDate', label: 'Tenure Start Date', type: 'text', optional: true },
+                          { key: 'endDate', label: 'Tenure End Date (e.g. Present)', type: 'text', optional: true },
+                          { key: 'description', label: 'Job description narrative', type: 'textarea', optional: true },
+                          { key: 'logoUrl', label: 'Company Logo Image (Upload)', type: 'upload', optional: true }
                         ]
                       })}
                     </div>
@@ -726,6 +838,53 @@ export const About = () => {
           <ShieldCheck className="w-4 h-4" />
           <span>About system framework running securely with synchronized context hooks.</span>
         </div>
+      </div>
+
+      {/* NEW SECTIONS: Future Goals, Core Collaborations, CTA */}
+      <div className="mt-8 space-y-4 max-w-5xl">
+        <h2 className="text-xl font-serif text-white tracking-tight mb-4">Additional Meta Sections</h2>
+        
+        <Card title="Future Goals" className="p-5 border-zinc-800/40 bg-zinc-950/10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input label="Tagline" value={futureGoalsForm.tagline || ''} onChange={e => setFutureGoalsForm({ ...futureGoalsForm, tagline: e.target.value })} />
+            <Input label="Headline" value={futureGoalsForm.headline || ''} onChange={e => setFutureGoalsForm({ ...futureGoalsForm, headline: e.target.value })} />
+            <div className="md:col-span-2">
+              <Input label="Paragraph 1" textarea rows={3} value={futureGoalsForm.paragraph1 || ''} onChange={e => setFutureGoalsForm({ ...futureGoalsForm, paragraph1: e.target.value })} />
+            </div>
+            <div className="md:col-span-2">
+              <Input label="Paragraph 2" textarea rows={3} value={futureGoalsForm.paragraph2 || ''} onChange={e => setFutureGoalsForm({ ...futureGoalsForm, paragraph2: e.target.value })} />
+            </div>
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button onClick={() => handleSingleSave('futureGoals', futureGoalsForm)} variant="primary" size="sm" className="bg-luxury-gold text-black font-bold">Save Future Goals</Button>
+          </div>
+        </Card>
+
+        <Card title="Core Collaborations" className="p-5 border-zinc-800/40 bg-zinc-950/10">
+            <h3 className="text-luxury-gold font-bold mb-4">1. Header Settings</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              <Input label="Tagline" value={coreCollabForm.tagline || ''} onChange={e => setCoreCollabForm({ ...coreCollabForm, tagline: e.target.value })} />
+              <Input label="Headline" value={coreCollabForm.headline || ''} onChange={e => setCoreCollabForm({ ...coreCollabForm, headline: e.target.value })} />
+              <div className="md:col-span-2 flex justify-end">
+                <Button onClick={() => handleSingleSave('coreCollaborations', coreCollabForm)} variant="primary" size="sm" className="bg-luxury-gold text-black font-bold">Save Header Info</Button>
+              </div>
+            </div>
+
+            <h3 className="text-luxury-gold font-bold mb-4 border-t border-zinc-800 pt-6">2. Manage Collaborators</h3>
+            {renderListManager({
+              sectionKey: 'coreCollaboratorsList',
+              displayColumns: [
+                { key: 'name', label: 'Name' },
+                { key: 'role', label: 'Role' }
+              ],
+              fields: [
+                { key: 'name', label: 'Collaborator Name', type: 'text' },
+                { key: 'role', label: 'Role / Type (e.g. AI Partner)', type: 'text' },
+                { key: 'description', label: 'Description / Bio', type: 'textarea' },
+                { key: 'logo', label: 'Collaborator Photo / Logo', type: 'upload' }
+              ]
+            })}
+          </Card>
       </div>
 
     </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMediaManager } from "../../context/MediaContext";
-import { useDatabase } from '../../context/DatabaseContext';
+import { useEffect } from 'react';
+import { getFounderJourneySettings, updateFounderJourneySettings, getFounderJourneyItems, createFounderJourneyItem, updateFounderJourneyItem, deleteFounderJourneyItem, toggleFounderJourneyItemStatus, publishFounderJourneyLive } from '../../Services/founderJourneyServices';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Switch } from '../../components/ui/Switch';
@@ -15,8 +16,38 @@ import {
 } from 'lucide-react';
 
 export const FounderJourney = () => {
-  const { db, updateSection } = useDatabase();
-  const journeyData = db?.founderJourney || {};
+  const [journeyData, setJourneyData] = useState({});
+
+  const fetchAll = async () => {
+    try {
+      const settingsRes = await getFounderJourneySettings();
+      const itemsRes = await getFounderJourneyItems();
+      const settings = settingsRes.data || {};
+      const items = itemsRes.data || [];
+      const newData = { ...settings };
+      items.forEach(item => {
+        if (!newData[item.type]) newData[item.type] = [];
+        newData[item.type].push(item);
+      });
+      // Sort items by order
+      Object.keys(newData).forEach(key => {
+        if (Array.isArray(newData[key])) {
+            newData[key].sort((a, b) => (a.order || 0) - (b.order || 0));
+        }
+      });
+      setJourneyData(newData);
+      setHeroForm(newData.hero || {});
+      setSettingsForm(newData.timelineSettings || {});
+      setVisionForm(newData.futureVision || {});
+      setSeoForm(newData.seo || {});
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchAll();
+  }, []);
 
   // Collapsible cards state
   const [expandedCards, setExpandedCards] = useState({
@@ -71,12 +102,15 @@ export const FounderJourney = () => {
     });
   };
 
-  const handleSingleSave = (sectionKey, data) => {
-    updateSection('founderJourney', { [sectionKey]: data });
-    showToast(`${sectionKey.toUpperCase()} section parameters updated successfully.`);
+  const handleSingleSave = async (sectionKey, data) => {
+    try {
+      await updateFounderJourneySettings({ [sectionKey]: data });
+      showToast(`${sectionKey.toUpperCase()} section parameters updated successfully.`);
+      fetchAll();
+    } catch (err) {}
   };
 
-  const updateSectionMeta = (secId, key, val) => {
+  const updateSectionMeta = async (secId, key, val) => {
     const currentSettings = journeyData.sectionSettings || {};
     const updatedSettings = {
       ...currentSettings,
@@ -85,8 +119,10 @@ export const FounderJourney = () => {
         [key]: val
       }
     };
-    updateSection('founderJourney', { sectionSettings: updatedSettings });
-    // Silent update, no toast notifications popped up!
+    try {
+      await updateFounderJourneySettings({ sectionSettings: updatedSettings });
+      fetchAll();
+    } catch (err) {}
   };
 
   // Reusable Media Upload Component
@@ -169,44 +205,56 @@ export const FounderJourney = () => {
     const listData = journeyData[sectionKey] || [];
     const isEditing = activeEditorSection === sectionKey;
 
-    const handleSaveItem = () => {
-      let nextList = [];
-      if (editingItemId) {
-        nextList = listData.map(item => item.id === editingItemId ? { ...item, ...draftItem } : item);
-        showToast("Item updated successfully.");
-      } else {
-        const newItem = { ...draftItem, id: `item-${Date.now()}`, status: draftItem.status || 'Active', order: listData.length + 1 };
-        nextList = [...listData, newItem];
-        showToast("New item created.");
+    const handleSaveItem = async () => {
+      try {
+        if (editingItemId) {
+          await updateFounderJourneyItem(editingItemId, { ...draftItem, type: sectionKey });
+          showToast("Item updated successfully.");
+        } else {
+          await createFounderJourneyItem({ ...draftItem, type: sectionKey, status: draftItem.status || 'Active', order: listData.length + 1 });
+          showToast("New item created.");
+        }
+        fetchAll();
+        setActiveEditorSection(null);
+        setEditingItemId(null);
+        setDraftItem({});
+      } catch (err) {
+        showToast("Error saving item", "error");
       }
-      updateSection('founderJourney', { [sectionKey]: nextList });
-      setActiveEditorSection(null);
-      setEditingItemId(null);
-      setDraftItem({});
     };
 
-    const handleDeleteItem = (id) => {
+    const handleDeleteItem = async (id) => {
       if (window.confirm("Are you sure you want to delete this item?")) {
-        const nextList = listData.filter(item => item.id !== id);
-        updateSection('founderJourney', { [sectionKey]: nextList });
-        showToast("Item deleted.");
+        try {
+          await deleteFounderJourneyItem(id);
+          showToast("Item deleted.");
+          fetchAll();
+        } catch(err){}
       }
     };
 
-    const handleToggleStatus = (id, currentStatus) => {
-      const nextList = listData.map(item => item.id === id ? { ...item, status: currentStatus === 'Active' ? 'Inactive' : 'Active' } : item);
-      updateSection('founderJourney', { [sectionKey]: nextList });
-      // Silent update on toggle switch, no notifications popped up!
+    const handleToggleStatus = async (id, currentStatus) => {
+      try {
+        await toggleFounderJourneyItemStatus(id);
+        fetchAll();
+      } catch(err){}
     };
 
-    const handleMoveItem = (index, direction) => {
+    const handleMoveItem = async (index, direction) => {
       const nextList = [...listData];
       const target = index + direction;
       if (target >= 0 && target < nextList.length) {
         const temp = nextList[index];
         nextList[index] = nextList[target];
         nextList[target] = temp;
-        updateSection('founderJourney', { [sectionKey]: nextList });
+        // update orders
+        nextList.forEach((it, idx) => it.order = idx + 1);
+        try {
+           for (const it of nextList) {
+               await updateFounderJourneyItem(it._id || it.id, { order: it.order, type: sectionKey });
+           }
+           fetchAll();
+        } catch(err){}
       }
     };
 
@@ -222,7 +270,7 @@ export const FounderJourney = () => {
 
     const handleStartEdit = (item) => {
       setActiveEditorSection(sectionKey);
-      setEditingItemId(item.id);
+      setEditingItemId((item._id || item.id));
       setDraftItem({ ...item });
     };
 
@@ -244,7 +292,7 @@ export const FounderJourney = () => {
                 </thead>
                 <tbody>
                   {listData.map((item, idx) => (
-                    <tr key={item.id || idx} className="border-b border-zinc-900/60 hover:bg-zinc-900/10 text-zinc-300">
+                    <tr key={(item._id || item.id) || idx} className="border-b border-zinc-900/60 hover:bg-zinc-900/10 text-zinc-300">
                       <td className="py-2.5 px-3 font-mono">{idx + 1}</td>
                       {displayColumns.map(col => (
                         <td key={col.key} className="py-2.5 px-3 max-w-[180px] truncate">
@@ -260,14 +308,14 @@ export const FounderJourney = () => {
                       <td className="py-2.5 px-3 text-center">
                         <Switch 
                           checked={item.status === 'Active'} 
-                          onChange={() => handleToggleStatus(item.id, item.status)}
+                          onChange={() => handleToggleStatus((item._id || item.id), item.status)}
                         />
                       </td>
                       <td className="py-2.5 px-3 text-right flex items-center justify-end gap-1.5 mt-0.5">
                         <button onClick={() => handleMoveItem(idx, -1)} disabled={idx === 0} className="p-1 hover:bg-zinc-900 rounded disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5" /></button>
                         <button onClick={() => handleMoveItem(idx, 1)} disabled={idx === listData.length - 1} className="p-1 hover:bg-zinc-900 rounded disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5" /></button>
                         <button onClick={() => handleStartEdit(item)} className="p-1 hover:bg-zinc-900 rounded text-amber-500"><Edit3 className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => handleDeleteItem(item.id)} className="p-1 hover:bg-zinc-900 rounded text-rose-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleDeleteItem((item._id || item.id))} className="p-1 hover:bg-zinc-900 rounded text-rose-500"><Trash2 className="w-3.5 h-3.5" /></button>
                       </td>
                     </tr>
                   ))}

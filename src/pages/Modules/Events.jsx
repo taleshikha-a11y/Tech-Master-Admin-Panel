@@ -1,38 +1,80 @@
 import React, { useState, useEffect } from 'react';
-import { useDatabase } from '../../context/DatabaseContext';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Switch } from '../../components/ui/Switch';
 import { ConfirmDialog } from '../../components/ui/Dialog';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as eventsServices from '../../services/eventsServices';
 import { 
   Sparkles, Search, Plus, Edit2, Trash2, X, Eye, 
   RefreshCw, Save, Image as ImageIcon, Video, Laptop, Terminal, Layers, ArrowUpRight, Calendar, Users, MapPin, Monitor, FileText, Download, CheckCircle, Clock, Layout
 } from 'lucide-react';
 
-export default function Events() {
-  const { db, updateSection, deleteNestedItem } = useDatabase();
-  const eventsPage = db?.eventsPage || {};
+import { 
+  getEvents, createEvent, updateEvent, deleteEvent,
+  getWorkshops, createWorkshop, updateWorkshop, deleteWorkshop,
+  getConferences, createConference, updateConference, deleteConference,
+  getBookingRequests, createBookingRequest, updateBookingRequest, deleteBookingRequest,
+  getPageSettings, updateHeroSettings, addEngagementType, updateEngagementType, deleteEngagementType,
+  addMediaArchive, updateMediaArchive, deleteMediaArchive,
+  updateVideoHighlights, updateBookingCTA
+} from '../../Services/eventsServices';
 
-  // Tab State
+export default function Events() {
   const [selectedTab, setSelectedTab] = useState('masterEventsList');
 
-  /* ===========================
-        GLOBAL UI STATES
-  =========================== */
+  const [dataCache, setDataCache] = useState({
+    masterEventsList: [],
+    workshops: [],
+    conferences: [],
+    bookingRequests: [],
+    engagementTypes: [],
+    mediaArchive: [],
+  });
+
+  const [eventsPage, setEventsPage] = useState({
+    heroSettings: {},
+    videoHighlights: {},
+    bookingCTA: {}
+  });
+
+  const fetchData = async () => {
+    try {
+      const [eventsRes, workshopsRes, conferencesRes, bookingsRes, pageRes] = await Promise.all([
+        getEvents(), getWorkshops(), getConferences(), getBookingRequests(), getPageSettings()
+      ]);
+      const pData = pageRes.data?.data || {};
+      setDataCache({
+        masterEventsList: eventsRes.data?.data || [],
+        workshops: workshopsRes.data?.data || [],
+        conferences: conferencesRes.data?.data || [],
+        bookingRequests: bookingsRes.data?.data || [],
+        engagementTypes: pData.engagementTypes || [],
+        mediaArchive: pData.mediaArchive || []
+      });
+      setEventsPage({
+        heroSettings: pData.heroSettings || {},
+        videoHighlights: pData.videoHighlights || {},
+        bookingCTA: pData.bookingCTA || {}
+      });
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const [expandedCards, setExpandedCards] = useState({});
   const toggleCard = (id) => setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
   const [toastMsg, setToastMsg] = useState('');
-
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3000);
   };
 
-  /* ===========================
-        INLINE EDITOR STATES
-  =========================== */
   const [activeEditorSection, setActiveEditorSection] = useState(null);
   const [editingItemId, setEditingItemId] = useState(null);
   const [draftItem, setDraftItem] = useState({});
@@ -40,16 +82,12 @@ export default function Events() {
   const [deletingItemId, setDeletingItemId] = useState(null);
   const [deletingSection, setDeletingSection] = useState(null);
 
-  /* ===========================
-        MEDIA UPLOAD STATES
-  =========================== */
   const [uploadingField, setUploadingField] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // Object Forms
-  const [heroForm, setHeroForm] = useState(eventsPage.heroSettings || {});
-  const [videoForm, setVideoForm] = useState(eventsPage.videoHighlights || {});
-  const [ctaForm, setCtaForm] = useState(eventsPage.bookingCTA || {});
+  const [heroForm, setHeroForm] = useState({});
+  const [videoForm, setVideoForm] = useState({});
+  const [ctaForm, setCtaForm] = useState({});
 
   useEffect(() => {
     setHeroForm(eventsPage.heroSettings || {});
@@ -64,9 +102,23 @@ export default function Events() {
     setEditingItemId(null);
   };
 
-  const handleSingleSave = (sectionKey, data) => {
-    updateSection('eventsPage', { [sectionKey]: data });
-    showToast(`✅ ${sectionKey.toUpperCase()} Updated Successfully!`);
+  const handleSingleSave = async (sectionKey, data) => {
+    try {
+      if (sectionKey === 'heroSettings') {
+        await updateHeroSettings(data);
+      } else if (sectionKey === 'videoHighlights') {
+        const fd = new FormData();
+        Object.keys(data).forEach(k => fd.append(k, data[k]));
+        await updateVideoHighlights(fd);
+      } else if (sectionKey === 'bookingCTA') {
+        await updateBookingCTA(data);
+      }
+      showToast(`✅ ${sectionKey.toUpperCase()} Updated Successfully!`);
+      fetchData();
+    } catch (e) {
+      console.error(e);
+      showToast(`Error updating ${sectionKey}`);
+    }
   };
 
   const simulateMediaUpload = (fieldKey, isObjectForm = false, objectSetter = null) => {
@@ -168,7 +220,7 @@ export default function Events() {
   };
 
   const renderListManager = (sectionKey, fields, gridCols = 2) => {
-    const listData = eventsPage[sectionKey] || [];
+    const listData = dataCache[sectionKey] || [];
     const isEditing = activeEditorSection === sectionKey;
 
     const handleStartAdd = () => {
@@ -183,26 +235,42 @@ export default function Events() {
 
     const handleStartEdit = (item) => {
       setDraftItem({ ...item });
-      setEditingItemId(item.id);
+      setEditingItemId(item._id || item.id);
       setActiveEditorSection(sectionKey);
     };
 
-    const handleSaveItem = () => {
-      let nextList = [];
-      if (editingItemId) {
-        nextList = listData.map(item => item.id === editingItemId ? { ...draftItem, id: item.id } : item);
-        showToast("Item updated successfully.");
-      } else {
-        const newItem = {
-          ...draftItem,
-          id: `item-${Date.now()}`,
-          order: listData.length + 1
-        };
-        nextList = [...listData, newItem];
-        showToast("New item created.");
+    const handleSaveItem = async () => {
+      try {
+        let fd = new FormData();
+        Object.keys(draftItem).forEach(k => {
+           if (draftItem[k] !== null && draftItem[k] !== undefined) {
+             fd.append(k, draftItem[k]);
+           }
+        });
+
+        let apiCall;
+        if (sectionKey === 'masterEventsList') {
+          apiCall = editingItemId ? () => updateEvent(editingItemId, fd) : () => createEvent(fd);
+        } else if (sectionKey === 'workshops') {
+          apiCall = editingItemId ? () => updateWorkshop(editingItemId, draftItem) : () => createWorkshop(draftItem);
+        } else if (sectionKey === 'conferences') {
+          apiCall = editingItemId ? () => updateConference(editingItemId, draftItem) : () => createConference(draftItem);
+        } else if (sectionKey === 'bookingRequests') {
+          apiCall = editingItemId ? () => updateBookingRequest(editingItemId, draftItem) : () => createBookingRequest(draftItem);
+        } else if (sectionKey === 'engagementTypes') {
+          apiCall = editingItemId ? () => updateEngagementType(editingItemId, draftItem) : () => addEngagementType(draftItem);
+        } else if (sectionKey === 'mediaArchive') {
+          apiCall = editingItemId ? () => updateMediaArchive(editingItemId, fd) : () => addMediaArchive(fd);
+        }
+
+        await apiCall();
+        showToast("Record saved successfully.");
+        setActiveEditorSection(null);
+        fetchData();
+      } catch (err) {
+        console.error(err);
+        showToast("Error saving record.");
       }
-      handleSingleSave(sectionKey, nextList);
-      setActiveEditorSection(null);
     };
 
     return (
@@ -228,11 +296,11 @@ export default function Events() {
                     <tr><td colSpan="3" className="px-4 py-6 text-center text-zinc-500 italic">No records found.</td></tr>
                   )}
                   {listData.map((item, idx) => (
-                    <tr key={item.id || idx} className="hover:bg-zinc-900/20 transition-colors group">
+                    <tr key={item._id || item.id || idx} className="hover:bg-zinc-900/20 transition-colors group">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           {(item.media || item.url || item.banner) && (
-                            <img src={item.media || item.url || item.banner} className="w-12 h-12 rounded object-cover border border-zinc-800 shrink-0" />
+                            <img src={item.media || item.url || item.banner} className="w-12 h-12 rounded object-cover border border-zinc-800 shrink-0" alt="media" />
                           )}
                           <div className="flex flex-col">
                             <span className="text-zinc-200 font-medium text-sm">{item.title || item.name || item.eventName || "Untitled"}</span>
@@ -251,7 +319,7 @@ export default function Events() {
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button type="button" onClick={() => handleStartEdit(item)} className="p-1.5 hover:bg-zinc-900 rounded text-zinc-400" title="Edit"><Edit2 className="w-3.5 h-3.5" /></button>
-                          <button type="button" onClick={() => { setDeletingItemId(item.id); setDeletingSection(sectionKey); }} className="p-1.5 hover:bg-zinc-900 rounded text-rose-500" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                          <button type="button" onClick={() => { setDeletingItemId(item._id || item.id); setDeletingSection(sectionKey); }} className="p-1.5 hover:bg-zinc-900 rounded text-rose-500" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       </td>
                     </tr>
@@ -329,10 +397,6 @@ export default function Events() {
     );
   };
 
-  /* ===========================
-        TAB RENDERERS
-  =========================== */
-
   const renderMasterEvents = () => {
     return (
       <div className="bg-zinc-950/40 border border-zinc-800/50 p-6 rounded-2xl w-full">
@@ -356,7 +420,7 @@ export default function Events() {
           { key: 'organizer', label: 'Organizer / Brand', type: 'text' },
           { key: 'coordinator', label: 'Coordinator Name', type: 'text' },
           { key: 'budget', label: 'Total Budget / Cost', type: 'text' },
-          { key: 'status', label: 'Event Status', type: 'switch', options: ['Upcoming', 'Completed', 'Cancelled', 'Draft'] },
+          { key: 'status', label: 'Event Status', type: 'switch', options: ['Upcoming', 'Completed', 'Cancelled', 'Draft', 'Active'] },
           { key: 'accentColor', label: 'Card Accent Color', type: 'color' },
           { key: 'media', label: 'Cover/Banner Image', type: 'upload' },
           { key: 'pressKitPdf', label: 'Press Kit PDF Link', type: 'text' },
@@ -409,7 +473,7 @@ export default function Events() {
           { key: 'eventName', label: 'Proposed Event Name', type: 'text' },
           { key: 'date', label: 'Requested Date', type: 'text' },
           { key: 'budget', label: 'Allocated Budget', type: 'text' },
-          { key: 'status', label: 'Status', type: 'switch', options: ['New', 'Contacted', 'Approved', 'Archived'] },
+          { key: 'status', label: 'Status', type: 'switch', options: ['New', 'Contacted', 'Approved', 'Archived', 'Active'] },
           { key: 'message', label: 'Additional Message / Requirements', type: 'textarea', fullWidth: true }
         ], 2)}
       </div>
@@ -471,7 +535,6 @@ export default function Events() {
 
   return (
     <div className="flex flex-col gap-6 text-left relative min-h-screen">
-      {/* Toast Notification */}
       <AnimatePresence>
         {toastMsg && (
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="fixed top-24 left-1/2 -translate-x-1/2 z-[9999] bg-zinc-900 border border-luxury-gold/50 text-luxury-gold px-6 py-3 rounded-full shadow-gold-glow flex items-center gap-3">
@@ -481,7 +544,6 @@ export default function Events() {
         )}
       </AnimatePresence>
 
-      {/* HEADER SECTION */}
       <div className="border-b border-zinc-800/80 pb-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-3xl font-medium tracking-wide text-zinc-100 flex items-center gap-3">
@@ -492,7 +554,6 @@ export default function Events() {
             Control the entire visitor event ecosystem. Manage 20-field master events, independent workshop modules, inbound booking forms, and dynamic page builders all from one unified luxury interface.
           </p>
         </div>
-
         <div className="flex items-center gap-3 flex-wrap">
           <Button onClick={() => { setSelectedTab('masterEventsList'); setActiveEditorSection('masterEventsList'); setEditingItemId(null); setDraftItem({}); }} variant="secondary" size="sm" className="bg-zinc-900 border-zinc-800 text-zinc-300">
              <Plus className="w-4 h-4 mr-1.5" /> Add Event
@@ -506,39 +567,33 @@ export default function Events() {
         </div>
       </div>
 
-      {/* MAIN TWO-COLUMN LAYOUT */}
       <div className="flex flex-col lg:flex-row gap-8 items-start mt-4">
-        
-        {/* LEFT SIDEBAR NAVIGATION */}
         <div className="w-full lg:w-72 flex flex-col gap-3 shrink-0">
           <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-[3px] px-2 mb-2">CMS Modules</h3>
-          
           <button onClick={() => handleTabSwitch('masterEventsList')} className={`w-full text-left px-5 py-3.5 rounded-xl text-sm font-medium transition-all flex items-center gap-3 ${selectedTab === 'masterEventsList' ? 'bg-luxury-gold/15 text-luxury-gold border border-luxury-gold/30 shadow-inner' : 'text-zinc-400 hover:bg-zinc-900/60 border border-transparent hover:border-zinc-800/50'}`}>
             <Monitor className="w-4 h-4" /> Master Events Database
           </button>
-          
+          {/* Removed unused tabs to match visitor page structure
           <button onClick={() => handleTabSwitch('workshops')} className={`w-full text-left px-5 py-3.5 rounded-xl text-sm font-medium transition-all flex items-center gap-3 ${selectedTab === 'workshops' ? 'bg-luxury-gold/15 text-luxury-gold border border-luxury-gold/30 shadow-inner' : 'text-zinc-400 hover:bg-zinc-900/60 border border-transparent hover:border-zinc-800/50'}`}>
             <Laptop className="w-4 h-4" /> Workshops
           </button>
-          
           <button onClick={() => handleTabSwitch('conferences')} className={`w-full text-left px-5 py-3.5 rounded-xl text-sm font-medium transition-all flex items-center gap-3 ${selectedTab === 'conferences' ? 'bg-luxury-gold/15 text-luxury-gold border border-luxury-gold/30 shadow-inner' : 'text-zinc-400 hover:bg-zinc-900/60 border border-transparent hover:border-zinc-800/50'}`}>
             <Users className="w-4 h-4" /> Conferences
           </button>
-          
+          */}
           <div className="my-2 border-t border-zinc-800/50"></div>
           <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-[3px] px-2 mb-2">Frontend Control</h3>
-          
           <button onClick={() => handleTabSwitch('pageBuilder')} className={`w-full text-left px-5 py-3.5 rounded-xl text-sm font-medium transition-all flex items-center gap-3 ${selectedTab === 'pageBuilder' ? 'bg-luxury-gold/15 text-luxury-gold border border-luxury-gold/30 shadow-inner' : 'text-zinc-400 hover:bg-zinc-900/60 border border-transparent hover:border-zinc-800/50'}`}>
             <Layout className="w-4 h-4" /> Page Builder UI
           </button>
-          
+          {/*
           <button onClick={() => handleTabSwitch('bookingRequests')} className={`w-full text-left px-5 py-3.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between group ${selectedTab === 'bookingRequests' ? 'bg-luxury-gold/15 text-luxury-gold border border-luxury-gold/30 shadow-inner' : 'text-zinc-400 hover:bg-zinc-900/60 border border-transparent hover:border-zinc-800/50'}`}>
             <div className="flex items-center gap-3"><FileText className="w-4 h-4" /> Booking Requests</div>
             <span className={`text-[10px] px-2 py-0.5 rounded-full ${selectedTab === 'bookingRequests' ? 'bg-luxury-gold/20' : 'bg-zinc-800 group-hover:bg-zinc-700'}`}>New</span>
           </button>
+          */}
         </div>
 
-        {/* RIGHT CONTENT AREA */}
         <div className="flex-1 w-full flex flex-col gap-4">
            {selectedTab === 'masterEventsList' && renderMasterEvents()}
            {selectedTab === 'workshops' && renderWorkshops()}
@@ -548,7 +603,6 @@ export default function Events() {
         </div>
       </div>
 
-      {/* GLOBAL DELETE CONFIRMATION PORTAL */}
       <ConfirmDialog
         isOpen={deletingItemId !== null}
         onClose={() => { setDeletingItemId(null); setDeletingSection(null); }}
@@ -556,11 +610,25 @@ export default function Events() {
         message="Are you sure you want to permanently delete this record? This action will remove it from the visitor website immediately."
         confirmText="Permanently Delete"
         cancelText="Cancel"
-        onConfirm={() => {
-          deleteNestedItem('eventsPage', deletingSection, deletingItemId);
-          setDeletingItemId(null);
-          setDeletingSection(null);
-          showToast("Record deleted successfully.");
+        onConfirm={async () => {
+          try {
+            let apiCall;
+            if (deletingSection === 'masterEventsList') apiCall = () => deleteEvent(deletingItemId);
+            else if (deletingSection === 'workshops') apiCall = () => deleteWorkshop(deletingItemId);
+            else if (deletingSection === 'conferences') apiCall = () => deleteConference(deletingItemId);
+            else if (deletingSection === 'bookingRequests') apiCall = () => deleteBookingRequest(deletingItemId);
+            else if (deletingSection === 'engagementTypes') apiCall = () => deleteEngagementType(deletingItemId);
+            else if (deletingSection === 'mediaArchive') apiCall = () => deleteMediaArchive(deletingItemId);
+            
+            if(apiCall) await apiCall();
+            setDeletingItemId(null);
+            setDeletingSection(null);
+            showToast("Record deleted successfully.");
+            fetchData();
+          } catch(err) {
+            console.error(err);
+            showToast("Failed to delete record.");
+          }
         }}
       />
     </div>

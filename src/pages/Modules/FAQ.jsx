@@ -18,9 +18,9 @@ export const FAQ = () => {
   const { db, addItem, updateItem, deleteItem, updateSection } = useDatabase();
   
   // Data
-  const faqSettings = db.faqSettings || {};
-  const faqCategories = db.faqCategories || [];
-  const faqs = db.faqs || [];
+  const faqSettings = db?.faqSettings || {};
+  const faqs = Array.isArray(db?.faqs) ? db.faqs : [];
+  const faqCategories = Array.isArray(db?.faqCategories) ? db.faqCategories : [];
 
   // Local Drafts
   const [heroDraft, setHeroDraft] = useState(faqSettings);
@@ -66,8 +66,10 @@ export const FAQ = () => {
     e.preventDefault();
     if (editingFAQ) {
       updateItem('faqs', editingFAQ.id, faqForm);
+      try { fetch(`http://localhost:5000/api/faq/${editingFAQ.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(faqForm) }); } catch(e){}
     } else {
       addItem('faqs', faqForm);
+      try { fetch(`http://localhost:5000/api/faq/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(faqForm) }); } catch(e){}
     }
     setIsFAQModalOpen(false);
     showToast(editingFAQ ? 'FAQ Updated' : 'FAQ Added');
@@ -81,11 +83,13 @@ export const FAQ = () => {
 
   const handleSaveCat = (e) => {
     e.preventDefault();
-    const currentList = db.faqCategories || [];
+    const currentList = Array.isArray(db.faqCategories) ? db.faqCategories : [];
     if (editingCat) {
       updateSection('faqCategories', null, currentList.map(c => c.id === editingCat.id ? { ...catForm, id: c.id } : c));
+      try { fetch(`http://localhost:5000/api/faq/${editingCat.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(catForm) }); } catch(e){}
     } else {
       updateSection('faqCategories', null, [...currentList, { ...catForm, id: `fc-${Date.now()}` }]);
+      try { fetch(`http://localhost:5000/api/faq/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(catForm) }); } catch(e){}
     }
     setIsCatModalOpen(false);
     showToast(editingCat ? 'Category Updated' : 'Category Added');

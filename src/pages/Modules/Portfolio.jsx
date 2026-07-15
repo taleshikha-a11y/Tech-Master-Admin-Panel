@@ -14,6 +14,7 @@ import {
   Monitor, CheckCircle, ArrowUpRight, Hash, ArrowRight, LayoutDashboard, Download, Filter,
   ChevronLeft, ChevronRight, Layers, FileDown, Settings, GripVertical, Settings2, Upload, FileUp
 } from 'lucide-react';
+import { getPortfolios, createPortfolio, updatePortfolio, deletePortfolio, updatePortfolioSettings } from '../../services/portfolioServices';
 
 /* =========================================================
    TILT CARD COMPONENT
@@ -69,9 +70,23 @@ const FileUpload = ({ label, value, onChange, accept = 'image/*,video/*,audio/*,
 
 export const Portfolio = () => {
   const { db, updateSection } = useDatabase();
-  const portfolioList = db?.portfolio || [];
+  const [apiPortfolioList, setApiPortfolioList] = useState([]);
+  const portfolioList = apiPortfolioList.length > 0 ? apiPortfolioList : (db?.portfolio || []);
   const portfolioHero = db?.portfolioHero || {};
   const portfolioFilters = db?.portfolioFilters || [];
+
+  const fetchPortfolios = async () => {
+    try {
+      const response = await getPortfolios();
+      setApiPortfolioList(response.data.data.map(p => ({...p, id: p._id})) || []);
+    } catch (error) {
+      console.error("Error fetching portfolios:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPortfolios();
+  }, []);
 
   const [toastMsg, setToastMsg] = useState('');
   const showToast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 3000); };
@@ -181,8 +196,13 @@ export const Portfolio = () => {
   /* ===========================
         HERO HANDLERS
   =========================== */
-  const handleSaveHero = () => {
+  const handleSaveHero = async () => {
     updateSection('portfolioHero', null, heroDraft);
+    try {
+      await updatePortfolioSettings(heroDraft);
+    } catch (e) {
+      console.error(e);
+    }
     showToast("✅ Portfolio Hero Settings Saved!");
   };
 
@@ -220,9 +240,22 @@ export const Portfolio = () => {
   };
   const toggleSelect = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
 
-  const handleBulkDelete = () => {
-    updateSection('portfolio', null, portfolioList.filter(item => !selectedIds.includes(item.id)));
-    setSelectedIds([]); setIsBulkDeleteOpen(false); showToast(`✅ ${selectedIds.length} items deleted successfully.`);
+  const handleBulkDelete = async () => {
+    if (window.confirm(`Delete ${selectedIds.length} items?`)) {
+      try {
+        for (const id of selectedIds) {
+          const item = portfolioList.find(i => i.id === id || i._id === id);
+          if (item && item._id) await deletePortfolio(item._id);
+        }
+        updateSection('portfolio', null, portfolioList.filter(item => !selectedIds.includes(item.id)));
+        setSelectedIds([]); 
+        setIsBulkDeleteOpen(false);
+        await fetchPortfolios();
+        showToast(`✅ ${selectedIds.length} items deleted successfully.`);
+      } catch (e) {
+        showToast("❌ Failed to delete some items");
+      }
+    }
   };
 
   const handleBulkStatusUpdate = () => {
@@ -275,26 +308,54 @@ export const Portfolio = () => {
     setIsEditorOpen(true);
   };
 
-  const handleSaveItem = () => {
+  const handleSaveItem = async () => {
     if (!draftItem.title || !draftItem.category || !draftItem.coverImage || !draftItem.client) {
       return showToast("❌ Title, Category, Client, and Cover Image are required.");
     }
+    
+    const payload = {
+      title: draftItem.title,
+      shortDescription: draftItem.subtitle || 'No description',
+      category: draftItem.category,
+      clientName: draftItem.client,
+      thumbnail: draftItem.coverImage,
+      video: draftItem.videoUrl || '',
+      images: draftItem.gallery || [],
+      accentColor: draftItem.accentColor || '#D4AF37'
+    };
+
     let nextList = [];
-    if (editingItemId) {
-      nextList = portfolioList.map(item => item.id === editingItemId ? { ...draftItem, id: item.id, updatedAt: new Date().toISOString() } : item);
-      showToast("✅ Portfolio updated successfully.");
-    } else {
-      nextList = [...portfolioList, { ...draftItem, id: `port-${Date.now()}`, createdAt: new Date().toISOString() }];
-      showToast("✅ New portfolio item created.");
+    try {
+      if (editingItemId) {
+        await updatePortfolio(editingItemId, payload);
+        nextList = portfolioList.map(item => item.id === editingItemId ? { ...draftItem, id: item.id, updatedAt: new Date().toISOString() } : item);
+        showToast("✅ Portfolio updated successfully.");
+      } else {
+        await createPortfolio(payload);
+        nextList = [...portfolioList, { ...draftItem, id: `port-${Date.now()}`, createdAt: new Date().toISOString() }];
+        showToast("✅ New portfolio item created.");
+      }
+      updateSection('portfolio', null, nextList);
+      await fetchPortfolios();
+      setIsEditorOpen(false);
+    } catch (e) {
+      showToast("❌ Failed to save Portfolio item");
     }
-    updateSection('portfolio', null, nextList);
-    setIsEditorOpen(false);
   };
 
-  const handleDeleteItem = () => {
-    updateSection('portfolio', null, portfolioList.filter(item => item.id !== deletingItemId));
-    setDeletingItemId(null);
-    showToast("✅ Portfolio item deleted.");
+  const handleDeleteItem = async () => {
+    try {
+      const item = portfolioList.find(i => i.id === deletingItemId || i._id === deletingItemId);
+      if (item && item._id) {
+        await deletePortfolio(item._id);
+      }
+      updateSection('portfolio', null, portfolioList.filter(item => item.id !== deletingItemId));
+      setDeletingItemId(null);
+      await fetchPortfolios();
+      showToast("✅ Portfolio item deleted.");
+    } catch (e) {
+      showToast("❌ Failed to delete");
+    }
   };
 
   const simulateMediaUpload = (fieldKey) => {

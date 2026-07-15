@@ -6,6 +6,7 @@ import { Input } from '../../components/ui/Input';
 import { Switch } from '../../components/ui/Switch';
 import { ConfirmDialog, Dialog } from '../../components/ui/Dialog';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as campaignServices from '../../services/campaignServices';
 import { 
   Sparkles, Search, Plus, Edit2, Trash2, X, Eye, 
   RefreshCw, Save, Image as ImageIcon, Video, Laptop, Terminal, Layers, ArrowUpRight, Cpu, Calendar, CheckCircle
@@ -15,8 +16,50 @@ export const Campaigns = () => {
   const { db, updateSection, deleteNestedItem } = useDatabase();
   
   // We handle both pages within this CMS module
-  const campaignsPage = db?.campaignsPage || {};
-  const launchesPage = db?.launchesPage || {};
+  
+  const [campaignsPage, setCampaignsPage] = useState({ hero: {}, seo: {}, lifecycle: [], successStories: [], campaignsList: [] });
+  const [launchesPage, setLaunchesPage] = useState({ hero: {}, seo: {}, featureVideo: {}, products: [], initiatives: [] });
+
+  const fetchData = async () => {
+    try {
+      const [cHero, cSeo, cLife, cSucc, cList, lHero, lSeo, lVid, lProd, lInit] = await Promise.all([
+        campaignServices.getCampaignHero().catch(()=>({data:{}})),
+        campaignServices.getCampaignSeo().catch(()=>({data:{}})),
+        campaignServices.getCampaignLifecycle().catch(()=>({data:[]})),
+        campaignServices.getCampaignSuccessStories().catch(()=>({data:[]})),
+        campaignServices.getCampaignsList().catch(()=>({data:[]})),
+        
+        campaignServices.getLaunchHero().catch(()=>({data:{}})),
+        campaignServices.getLaunchSeo().catch(()=>({data:{}})),
+        campaignServices.getLaunchVideo().catch(()=>({data:{}})),
+        campaignServices.getLaunchProducts().catch(()=>({data:[]})),
+        campaignServices.getLaunchInitiatives().catch(()=>({data:[]}))
+      ]);
+
+      setCampaignsPage({
+        hero: cHero.data || {},
+        seo: cSeo.data || {},
+        lifecycle: cLife.data || [],
+        successStories: cSucc.data || [],
+        campaignsList: cList.data || []
+      });
+
+      setLaunchesPage({
+        hero: lHero.data || {},
+        seo: lSeo.data || {},
+        featureVideo: lVid.data || {},
+        products: lProd.data || [],
+        initiatives: lInit.data || []
+      });
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
 
   // Tab State: 'campaigns' or 'launches'
   const [selectedTab, setSelectedTab] = useState('campaigns');
@@ -74,10 +117,21 @@ export const Campaigns = () => {
   /* ===========================
         SAVE HANDLERS
   =========================== */
-  const handleSingleSave = (sectionKey, data) => {
-    const targetPage = selectedTab === 'campaigns' ? 'campaignsPage' : 'launchesPage';
-    updateSection(targetPage, { [sectionKey]: data });
-    showToast(`✅ ${sectionKey.toUpperCase()} Updated Successfully!`);
+  const handleSingleSave = async (sectionKey, data) => {
+    try {
+      if (selectedTab === 'campaigns') {
+        if (sectionKey === 'hero') await campaignServices.updateCampaignHero(data);
+        if (sectionKey === 'seo') await campaignServices.updateCampaignSeo(data);
+      } else {
+        if (sectionKey === 'hero') await campaignServices.updateLaunchHero(data);
+        if (sectionKey === 'seo') await campaignServices.updateLaunchSeo(data);
+        if (sectionKey === 'featureVideo') await campaignServices.updateLaunchVideo(data);
+      }
+      showToast(`✅ ${sectionKey.toUpperCase()} Updated Successfully!`);
+      fetchData();
+    } catch (err) {
+      showToast("Error updating.");
+    }
   };
 
   const simulateMediaUpload = (fieldKey) => {
@@ -246,14 +300,14 @@ export const Campaigns = () => {
 
     const handleStartEdit = (item) => {
       setDraftItem({ ...item });
-      setEditingItemId(item.id);
+      setEditingItemId(item._id || item.id);
       setActiveEditorSection(sectionKey);
     };
 
     const handleSaveItem = () => {
       let nextList = [];
       if (editingItemId) {
-        nextList = listData.map(item => item.id === editingItemId ? { ...draftItem, id: item.id } : item);
+        nextList = listData.map(item => (item._id || item.id) === editingItemId ? { ...draftItem, id: item.id } : item);
         showToast("Item updated successfully.");
       } else {
         const newItem = {
@@ -298,7 +352,7 @@ export const Campaigns = () => {
                     <tr><td colSpan="3" className="px-4 py-6 text-center text-zinc-500 italic">No records found.</td></tr>
                   )}
                   {listData.map((item, idx) => (
-                    <tr key={item.id || idx} className="hover:bg-zinc-900/20 transition-colors group">
+                    <tr key={item._id || item.id || idx} className="hover:bg-zinc-900/20 transition-colors group">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           {item.coverImage && (
@@ -325,7 +379,7 @@ export const Campaigns = () => {
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button type="button" onClick={() => handleStartEdit(item)} className="p-1 hover:bg-zinc-900 rounded text-zinc-400" title="Edit"><Edit2 className="w-3.5 h-3.5" /></button>
-                          <button type="button" onClick={() => { setDeletingItemId(item.id); setDeletingSection(sectionKey); }} className="p-1 hover:bg-zinc-900 rounded text-rose-500" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                          <button type="button" onClick={() => { setDeletingItemId(item._id || item.id); setDeletingSection(sectionKey); }} className="p-1 hover:bg-zinc-900 rounded text-rose-500" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       </td>
                     </tr>
@@ -719,12 +773,23 @@ export const Campaigns = () => {
         message="Are you sure you want to delete this record? This action is permanent and cannot be undone."
         confirmText="Delete"
         cancelText="Cancel"
-        onConfirm={() => {
-          const targetPage = selectedTab === 'campaigns' ? 'campaignsPage' : 'launchesPage';
-          deleteNestedItem(targetPage, deletingSection, deletingItemId);
-          setDeletingItemId(null);
-          setDeletingSection(null);
-          showToast("Record deleted successfully.");
+        onConfirm={async () => {
+          try {
+            if (selectedTab === 'campaigns') {
+              if (deletingSection === 'campaignsList') await campaignServices.deleteCampaignItem(deletingItemId);
+              else if (deletingSection === 'lifecycle') await campaignServices.deleteCampaignLifecycle(deletingItemId);
+              else if (deletingSection === 'successStories') await campaignServices.deleteCampaignSuccessStory(deletingItemId);
+            } else {
+              if (deletingSection === 'products') await campaignServices.deleteLaunchProduct(deletingItemId);
+              else if (deletingSection === 'initiatives') await campaignServices.deleteLaunchInitiative(deletingItemId);
+            }
+            setDeletingItemId(null);
+            setDeletingSection(null);
+            showToast("Record deleted successfully.");
+            fetchData();
+          } catch(err) {
+            showToast("Failed to delete record.");
+          }
         }}
       />
     </div>

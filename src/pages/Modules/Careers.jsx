@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { getCareers, createCareer, updateCareer, deleteCareer, getCareerSettings, updateCareerSettings, getResumes, updateResume, deleteResume } from '../../services/careerServices';
 import { useDatabase } from '../../context/DatabaseContext';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -49,9 +50,59 @@ export const Careers = () => {
   
   // Data Collections
   const careerHero = db?.careerHero || {};
-  const careers = db?.careers || [];
-  const resumes = db?.resumes || [];
-  const careerCulture = db?.careerCulture || [];
+  const [dbCareers, setDbCareers] = useState([]);
+  const careers = dbCareers;
+
+  useEffect(() => {
+    fetchCareers();
+  }, []);
+
+  const fetchCareers = async () => {
+    try {
+      const res = await getCareers();
+      const items = res.data?.data || res.data || res;
+      setDbCareers(Array.isArray(items) ? items.map(item => ({ ...item, id: item._id || item.id })) : []);
+      
+      const settingsRes = await getCareerSettings();
+      const settings = settingsRes.data?.data || settingsRes.data;
+      if (settings) {
+        setHeroDraft({
+          badge: settings.smallHeading || '',
+          titleLine1: settings.mainHeadingLine1 || '',
+          titleLine2: settings.highlightText || '',
+          description: settings.description || '',
+          bgImageUrl: settings.bgImageUrl || '',
+          bgVideoUrl: settings.bgVideoUrl || ''
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const [dbResumes, setDbResumes] = useState([]);
+  const resumes = dbResumes;
+
+  useEffect(() => {
+    fetchCareers();
+    fetchResumes();
+  }, []);
+
+  const fetchResumes = async () => {
+    try {
+      const res = await getResumes();
+      const items = res.data?.data || res.data || res;
+      setDbResumes(Array.isArray(items) ? items.map(item => ({ 
+        ...item, 
+        id: item._id || item.id,
+        candidateName: item.fullName || item.candidateName,
+        portfolioUrl: item.portfolio || item.portfolioUrl,
+        linkedinUrl: item.linkedin || item.linkedinUrl,
+        resumeFileUrl: item.resume?.url || item.resumeFileUrl || (typeof item.resume === 'string' ? item.resume : null)
+      })) : []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
   const careerProcess = db?.careerProcess || [];
   const careerStats = db?.careerStats || {};
   const careerGallery = db?.careerGallery || [];
@@ -99,8 +150,41 @@ export const Careers = () => {
     setIsEditorOpen(true);
   };
 
-  const handleSaveItem = () => {
+  const handleSaveItem = async () => {
     const collectionKey = editingType;
+
+    if (collectionKey === 'careers') {
+      try {
+        if (editingId) {
+          await updateCareer(editingId, draftItem);
+        } else {
+          await createCareer(draftItem);
+        }
+        await fetchCareers();
+        setIsEditorOpen(false);
+        showToast(`✅ Saved ${editingType}.`);
+      } catch (err) {
+        console.error(err);
+        showToast("❌ Error saving career");
+      }
+      return;
+    }
+
+    if (collectionKey === 'resumes') {
+      try {
+        if (editingId) {
+          await updateResume(editingId, draftItem);
+        }
+        await fetchResumes();
+        setIsEditorOpen(false);
+        showToast(`✅ Saved ${editingType}.`);
+      } catch (err) {
+        console.error(err);
+        showToast("❌ Error saving resume");
+      }
+      return;
+    }
+
     const currentList = db[collectionKey] || [];
     let nextList = [];
     if (editingId) {
@@ -114,9 +198,39 @@ export const Careers = () => {
     showToast(`✅ Saved ${editingType}.`);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (deleteId) {
       const collectionKey = deletingType;
+
+      if (collectionKey === 'careers') {
+        try {
+          await deleteCareer(deleteId);
+          await fetchCareers();
+          setDeleteId(null);
+          setDeletingType(null);
+          showToast("✅ Record deleted.");
+        } catch (err) {
+          console.error(err);
+          showToast("❌ Error deleting career");
+        }
+        return;
+      }
+
+      if (collectionKey === 'resumes') {
+        try {
+          await deleteResume(deleteId);
+          await fetchResumes();
+          if (viewingResume?.id === deleteId) setViewingResume(null);
+          setDeleteId(null);
+          setDeletingType(null);
+          showToast("✅ Record deleted.");
+        } catch (err) {
+          console.error(err);
+          showToast("❌ Error deleting resume");
+        }
+        return;
+      }
+
       const currentList = db[collectionKey] || [];
       updateSection(collectionKey, currentList.filter(item => item.id !== deleteId));
       if (viewingResume?.id === deleteId) setViewingResume(null);
@@ -129,7 +243,26 @@ export const Careers = () => {
   const handleBulkAction = (action, collectionKey) => {
       // In a real app, this would use a checklist. Simulating bulk action for now.
       showToast(`Simulated Bulk ${action} on ${collectionKey}`);
-  }
+  };
+
+  const handleSaveHero = async () => {
+    updateSection('careerHero', null, heroDraft);
+    try {
+      await updateCareerSettings({
+        smallHeading: heroDraft.badge,
+        mainHeadingLine1: heroDraft.titleLine1,
+        mainHeadingLine2: '',
+        highlightText: heroDraft.titleLine2,
+        description: heroDraft.description,
+        bgImageUrl: heroDraft.bgImageUrl,
+        bgVideoUrl: heroDraft.bgVideoUrl
+      });
+      showToast('✅ Hero Saved');
+    } catch (e) {
+      console.error(e);
+      showToast('❌ Error saving hero');
+    }
+  };
 
   const renderTable = (list, type) => (
     <div className="bg-zinc-950/40 border border-zinc-800/50 rounded-2xl overflow-x-auto w-full">
@@ -151,7 +284,7 @@ export const Careers = () => {
               <td className="px-5 py-4 text-zinc-500">{item.order || idx + 1}</td>
               <td className="px-5 py-4">
                 <div className="flex flex-col">
-                  <span className="text-zinc-200 font-medium truncate max-w-[200px]">{item.title || item.candidateName || item.step || '-'}</span>
+                  <span className="text-zinc-200 font-medium truncate max-w-[200px]">{item.title || item.fullName || item.candidateName || item.step || '-'}</span>
                   <span className="text-[10px] text-zinc-500 truncate max-w-[200px]">{item.department || item.email || item.description || '-'}</span>
                 </div>
               </td>
@@ -264,7 +397,7 @@ export const Careers = () => {
                   <FileUpload label="Background Image" value={heroDraft.bgImageUrl || ''} onChange={url => setHeroDraft(p => ({...p, bgImageUrl: url}))} accept="image/*" />
                   <FileUpload label="Background Video" value={heroDraft.bgVideoUrl || ''} onChange={url => setHeroDraft(p => ({...p, bgVideoUrl: url}))} accept="video/*" />
                 </div>
-                <div className="flex justify-end mt-6"><Button onClick={() => { updateSection('careerHero', null, heroDraft); showToast('✅ Hero Saved'); }} variant="primary" className="bg-luxury-gold text-black">Save Hero</Button></div>
+                <div className="flex justify-end mt-6"><Button onClick={handleSaveHero} variant="primary" className="bg-luxury-gold text-black">Save Hero</Button></div>
               </div>
             </motion.div>
           )}

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import * as serviceApi from '../../Services/serviceServices';
 import { useMediaManager } from "../../context/MediaContext";
-import { useDatabase } from '../../context/DatabaseContext';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Switch } from '../../components/ui/Switch';
@@ -151,8 +151,34 @@ const GalleryManager = ({ label, images = [], onChange }) => {
 // 3. MAIN SERVICES MODULE DEFINITION
 // ==========================================
 export default function Services() {
-  const { db, updateSection } = useDatabase();
-  const servicesPage = db?.servicesPage || {};
+  const [servicesPage, setServicesPage] = useState({});
+
+  const fetchServicesData = async () => {
+    try {
+      const res = await serviceApi.getServiceData();
+      if (res.data?.success) {
+        setServicesPage(res.data.data);
+        setHeroForm(res.data.data.hero || {});
+        setSeoForm(res.data.data.seo || {});
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchServicesData();
+  }, []);
+
+  const updateSection = async (pageKey, payload) => {
+    const nextData = { ...servicesPage, ...payload };
+    setServicesPage(nextData);
+    try {
+      await serviceApi.updateEntireService(nextData);
+    } catch (error) {
+      console.error('Failed to update section:', error);
+    }
+  };
 
   // Collapsible cards state
   const [expandedCards, setExpandedCards] = useState({
@@ -912,3 +938,7 @@ export default function Services() {
     </div>
   );
 }
+
+
+
+

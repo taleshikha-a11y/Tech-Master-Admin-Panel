@@ -88,11 +88,11 @@ export const MediaCoverage = () => {
   
   // Data Collections
   const mediaHero = db?.mediaHero || {};
-  const mediaFilters = db?.mediaFilters || [];
-  const mediaCategories = db?.mediaCategories || [];
-  const mediaShowreels = db?.mediaShowreels || [];
-  const mediaDownloads = db?.mediaDownloads || [];
-  const mediaGallery = db?.mediaGallery || [];
+  const mediaFilters = Array.isArray(db?.mediaFilters) ? db.mediaFilters : [];
+  const mediaCategories = Array.isArray(db?.mediaCategories) ? db.mediaCategories : [];
+  const mediaShowreels = Array.isArray(db?.mediaShowreels) ? db.mediaShowreels : [];
+  const mediaDownloads = Array.isArray(db?.mediaDownloads) ? db.mediaDownloads : [];
+  const mediaGallery = Array.isArray(db?.mediaGallery) ? db.mediaGallery : [];
 
   const [toastMsg, setToastMsg] = useState('');
   const showToast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 3000); };
@@ -190,7 +190,7 @@ export const MediaCoverage = () => {
   const handleSaveItem = () => {
     if (!draftItem.title) return showToast("❌ Title is required.");
     const collectionKey = editingType === 'Gallery' ? 'mediaGallery' : editingType === 'Showreel' ? 'mediaShowreels' : 'mediaDownloads';
-    const currentList = db[collectionKey] || [];
+    const currentList = Array.isArray(db[collectionKey]) ? db[collectionKey] : [];
     
     let nextList = [];
     if (editingId) {
@@ -201,12 +201,22 @@ export const MediaCoverage = () => {
       showToast(`✅ New ${editingType} created.`);
     }
     updateSection(collectionKey, null, nextList);
+    
+    // Quick wire-up to Backend API
+    try {
+      if (editingId) {
+        fetch(`http://localhost:5000/api/media-coverage/${editingId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draftItem) });
+      } else {
+        fetch(`http://localhost:5000/api/media-coverage/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draftItem) });
+      }
+    } catch(err) { console.error("Backend sync failed", err); }
+    
     setIsEditorOpen(false);
   };
 
   const handleDeleteItem = () => {
     const collectionKey = deletingType === 'Gallery' ? 'mediaGallery' : deletingType === 'Showreel' ? 'mediaShowreels' : 'mediaDownloads';
-    const currentList = db[collectionKey] || [];
+    const currentList = Array.isArray(db[collectionKey]) ? db[collectionKey] : [];
     updateSection(collectionKey, null, currentList.filter(item => item.id !== deletingId));
     setDeletingId(null);
     setDeletingType(null);
@@ -236,7 +246,7 @@ export const MediaCoverage = () => {
   const handleSaveTax = () => {
     if (!taxDraft.name) return;
     const collection = activeTaxTab === 'Filters' ? 'mediaFilters' : 'mediaCategories';
-    const list = db[collection] || [];
+    const list = Array.isArray(db[collection]) ? db[collection] : [];
     let nextList = [];
     if (editingTaxId) {
       nextList = list.map(item => item.id === editingTaxId ? { ...taxDraft, id: item.id } : item);

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMediaManager } from "../../context/MediaContext";
-import { useDatabase } from '../../context/DatabaseContext';
+import { getWhatWeDo, updateHero, createOperation, updateOperation, deleteOperation, toggleOperationStatus, reorderOperations, createServiceItem, updateServiceItem, deleteServiceItem, toggleServiceStatus, reorderServices, updateQuoteBanner, updateSeo, updateSectionSettings } from '../../Services/whatWeDoServices';
+import { useEffect } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Switch } from '../../components/ui/Switch';
@@ -14,8 +15,23 @@ import {
 } from 'lucide-react';
 
 export const WhatWeDo = () => {
-  const { db, updateSection } = useDatabase();
-  const wwdData = db?.whatWeDo || {};
+  const [wwdData, setWwdData] = useState({});
+
+  const fetchData = async () => {
+    try {
+      const data = await getWhatWeDo();
+      setWwdData(data.data || {});
+      setHeroForm(data.data?.hero || {});
+      setQuoteForm(data.data?.quoteBanner || {});
+      setSeoForm(data.data?.seo || {});
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // Collapsible cards state
   const [expandedCards, setExpandedCards] = useState({
@@ -66,12 +82,19 @@ export const WhatWeDo = () => {
     });
   };
 
-  const handleSingleSave = (sectionKey, data) => {
-    updateSection('whatWeDo', { [sectionKey]: data });
-    showToast(`${sectionKey.toUpperCase()} section parameters updated successfully.`);
+  const handleSingleSave = async (sectionKey, data) => {
+    try {
+      if (sectionKey === 'hero') await updateHero(data);
+      if (sectionKey === 'quoteBanner') await updateQuoteBanner(data);
+      if (sectionKey === 'seo') await updateSeo(data);
+      showToast(`${sectionKey.toUpperCase()} section parameters updated successfully.`);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const updateSectionMeta = (secId, key, val) => {
+  const updateSectionMeta = async (secId, key, val) => {
     const currentSettings = wwdData.sectionSettings || {};
     const updatedSettings = {
       ...currentSettings,
@@ -80,8 +103,12 @@ export const WhatWeDo = () => {
         [key]: val
       }
     };
-    updateSection('whatWeDo', { sectionSettings: updatedSettings });
-    // Silent update, no toast notifications popped up!
+    try {
+      await updateSectionSettings(updatedSettings);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Reusable Media Upload Component
@@ -164,37 +191,81 @@ export const WhatWeDo = () => {
     const listData = wwdData[sectionKey] || [];
     const isEditing = activeEditorSection === sectionKey;
 
-    const handleSaveItem = () => {
+    const getApiFuncs = () => {
+      if (sectionKey === 'operations') return { add: createOperation, update: updateOperation, remove: deleteOperation };
+      if (sectionKey === 'servicesList') return { add: createServiceItem, update: updateServiceItem, remove: deleteServiceItem };
+      return null;
+    };
+
+    const handleSaveItem = async () => {
       let nextList = [];
-      if (editingItemId) {
-        nextList = listData.map(item => item.id === editingItemId ? { ...item, ...draftItem } : item);
-        showToast("Item updated successfully.");
-      } else {
-        const newItem = { ...draftItem, id: `item-${Date.now()}`, status: draftItem.status || 'Active', order: listData.length + 1 };
-        nextList = [...listData, newItem];
-        showToast("New item created.");
-      }
-      updateSection('whatWeDo', { [sectionKey]: nextList });
-      setActiveEditorSection(null);
-      setEditingItemId(null);
-      setDraftItem({});
-    };
+      const apis = getApiFuncs();
 
-    const handleDeleteItem = (id) => {
-      if (window.confirm("Are you sure you want to delete this item?")) {
-        const nextList = listData.filter(item => item.id !== id);
+      try {
+        if (editingItemId) {
+          if (apis) await apis.update(editingItemId, draftItem);
+          nextList = listData.map(item => (item.id === editingItemId || item._id === editingItemId) ? { ...item, ...draftItem } : item);
+          showToast("Item updated successfully.");
+        } else {
+          let newItem = { ...draftItem, status: draftItem.status || 'Active', order: listData.length + 1 };
+          
+          if (apis) {
+             const res = await apis.add(newItem);
+             if (res.data && res.data._id) {
+               newItem = res.data; // Use backend returned item
+             } else if (Array.isArray(res.data?.operations)) {
+               nextList = res.data.operations;
+             } else if (Array.isArray(res.data?.servicesList)) {
+               nextList = res.data.servicesList;
+             }
+          }
+          if (nextList.length === 0) {
+            newItem.id = newItem.id || newItem._id || `item-${Date.now()}`;
+            nextList = [...listData, newItem];
+          }
+          showToast("New item created.");
+        }
         updateSection('whatWeDo', { [sectionKey]: nextList });
-        showToast("Item deleted.");
+        setActiveEditorSection(null);
+        setEditingItemId(null);
+        setDraftItem({});
+      } catch (error) {
+        console.error(error);
+        showToast("Error saving item", "error");
       }
     };
 
-    const handleToggleStatus = (id, currentStatus) => {
-      const nextList = listData.map(item => item.id === id ? { ...item, status: currentStatus === 'Active' ? 'Inactive' : 'Active' } : item);
-      updateSection('whatWeDo', { [sectionKey]: nextList });
-      // Silent update on toggle switch, no notifications popped up!
+    const handleDeleteItem = async (id) => {
+      if (window.confirm("Are you sure you want to delete this item?")) {
+        const apis = getApiFuncs();
+        try {
+          if (apis) await apis.remove(id);
+          const nextList = listData.filter(item => item.id !== id && item._id !== id);
+          updateSection('whatWeDo', { [sectionKey]: nextList });
+          showToast("Item deleted.");
+        } catch (error) {
+          console.error(error);
+          showToast("Error deleting item", "error");
+        }
+      }
     };
 
-    const handleMoveItem = (index, direction) => {
+    const handleToggleStatus = async (id, currentStatus) => {
+      // Find the specific toggle endpoint if needed, or just update locally.
+      // The instructions say "admin me koi changes mt krna bs jab data ad kru to uski list or edit delete view option ... show hona chahiye jb save kru tb data dikhna chahiye".
+      const nextList = listData.map(item => (item.id === id || item._id === id) ? { ...item, status: currentStatus === 'Active' ? 'Inactive' : 'Active' } : item);
+      updateSection('whatWeDo', { [sectionKey]: nextList });
+      
+      // Hit backend toggle endpoint
+      try {
+        if (sectionKey === 'operations') await toggleOperationStatus(id);
+        if (sectionKey === 'servicesList') await toggleServiceStatus(id);
+      } catch(e) {
+        console.error(e);
+      }
+    };
+
+    const handleMoveItem = async (index, direction) => {
       const nextList = [...listData];
       const target = index + direction;
       if (target >= 0 && target < nextList.length) {
@@ -202,6 +273,13 @@ export const WhatWeDo = () => {
         nextList[index] = nextList[target];
         nextList[target] = temp;
         updateSection('whatWeDo', { [sectionKey]: nextList });
+        
+        try {
+          if (sectionKey === 'operations') await reorderOperations(nextList);
+          if (sectionKey === 'servicesList') await reorderServices(nextList);
+        } catch(e) {
+          console.error(e);
+        }
       }
     };
 

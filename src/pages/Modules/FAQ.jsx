@@ -66,10 +66,10 @@ export const FAQ = () => {
     e.preventDefault();
     if (editingFAQ) {
       updateItem('faqs', editingFAQ.id, faqForm);
-      try { fetch(`http://localhost:5000/api/faq/${editingFAQ.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(faqForm) }); } catch(e){}
+      try { fetch(`${import.meta.env.VITE_API_URL}/api/faq/${editingFAQ.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(faqForm) }); } catch(e){}
     } else {
       addItem('faqs', faqForm);
-      try { fetch(`http://localhost:5000/api/faq/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(faqForm) }); } catch(e){}
+      try { fetch(`${import.meta.env.VITE_API_URL}/api/faq/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(faqForm) }); } catch(e){}
     }
     setIsFAQModalOpen(false);
     showToast(editingFAQ ? 'FAQ Updated' : 'FAQ Added');
@@ -86,10 +86,10 @@ export const FAQ = () => {
     const currentList = Array.isArray(db.faqCategories) ? db.faqCategories : [];
     if (editingCat) {
       updateSection('faqCategories', null, currentList.map(c => c.id === editingCat.id ? { ...catForm, id: c.id } : c));
-      try { fetch(`http://localhost:5000/api/faq/${editingCat.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(catForm) }); } catch(e){}
+      try { fetch(`${import.meta.env.VITE_API_URL}/api/faq/${editingCat.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(catForm) }); } catch(e){}
     } else {
       updateSection('faqCategories', null, [...currentList, { ...catForm, id: `fc-${Date.now()}` }]);
-      try { fetch(`http://localhost:5000/api/faq/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(catForm) }); } catch(e){}
+      try { fetch(`${import.meta.env.VITE_API_URL}/api/faq/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(catForm) }); } catch(e){}
     }
     setIsCatModalOpen(false);
     showToast(editingCat ? 'Category Updated' : 'Category Added');

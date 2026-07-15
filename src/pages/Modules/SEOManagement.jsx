@@ -72,7 +72,7 @@ export const SEOManagement = () => {
     const newRedirObj = { id: `redir-${Date.now()}`, ...newRedirect };
     setRedirectsList([...redirectsList, newRedirObj]);
     setNewRedirect({ fromPath: '', toPath: '', code: '301 Permanent' });
-    try { fetch(`http://localhost:5000/api/redirects/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newRedirObj) }); } catch(err){}
+    try { fetch(`${import.meta.env.VITE_API_URL}/api/redirects/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newRedirObj) }); } catch(err){}
     showToast('Redirect Rule Added');
   };
 
@@ -87,14 +87,14 @@ export const SEOManagement = () => {
   const handleSaveGlobal = (e) => {
     if(e) e.preventDefault();
     updateSection('globalSEO', null, globalDraft);
-    try { fetch(`http://localhost:5000/api/seo`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(globalDraft) }); } catch(err){}
+    try { fetch(`${import.meta.env.VITE_API_URL}/api/seo`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(globalDraft) }); } catch(err){}
     showToast('Global SEO Settings Saved!');
   };
 
   const handleSavePage = (e) => {
     if(e) e.preventDefault();
     updateSection('pageSEO', null, pageSEO.map(p => p.id === pageDraft.id ? pageDraft : p));
-    try { fetch(`http://localhost:5000/api/page-seo/${pageDraft.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pageDraft) }); } catch(err){}
+    try { fetch(`${import.meta.env.VITE_API_URL}/api/page-seo/${pageDraft.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pageDraft) }); } catch(err){}
     showToast('Page SEO Saved!');
   };
 
@@ -116,7 +116,7 @@ export const SEOManagement = () => {
     const newDraft = { ...globalDraft, socialLinks: updatedList };
     setGlobalDraft(newDraft);
     updateSection('globalSEO', null, newDraft);
-    try { fetch(`http://localhost:5000/api/seo`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newDraft) }); } catch(err){}
+    try { fetch(`${import.meta.env.VITE_API_URL}/api/seo`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newDraft) }); } catch(err){}
     setIsSocialModalOpen(false);
     showToast('Social Link Saved!');
   };

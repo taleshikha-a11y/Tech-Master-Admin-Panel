@@ -205,9 +205,9 @@ export const MediaCoverage = () => {
     // Quick wire-up to Backend API
     try {
       if (editingId) {
-        fetch(`http://localhost:5000/api/media-coverage/${editingId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draftItem) });
+        fetch(`${import.meta.env.VITE_API_URL}/api/media-coverage/${editingId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draftItem) });
       } else {
-        fetch(`http://localhost:5000/api/media-coverage/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draftItem) });
+        fetch(`${import.meta.env.VITE_API_URL}/api/media-coverage/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draftItem) });
       }
     } catch(err) { console.error("Backend sync failed", err); }
     

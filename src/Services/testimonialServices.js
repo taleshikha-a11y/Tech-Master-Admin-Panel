@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // Make sure to use the environment variable for your API URL if applicable
-const API_URL = "http://localhost:5000/api/testimonials"; 
+const API_URL = `${import.meta.env.VITE_API_URL}/api/testimonials`; 
 
 // Create an Axios instance with credentials if needed (e.g., for JWT cookies)
 const api = axios.create({

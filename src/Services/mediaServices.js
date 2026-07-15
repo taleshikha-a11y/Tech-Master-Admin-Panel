@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Replace with your actual backend URL or use environment variables
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'; 
+const API_URL = `${import.meta.env.VITE_API_URL}/api`; 
 
 export const createMedia = async (formData) => {
   const response = await axios.post(`${API_URL}/media/create`, formData, {

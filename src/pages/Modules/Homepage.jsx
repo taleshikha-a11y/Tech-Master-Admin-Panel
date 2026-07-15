@@ -52,7 +52,7 @@ export const Homepage = () => {
   };
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/v1/homepage/sync')
+    fetch(`${import.meta.env.VITE_API_URL}/api/v1/homepage/sync`)
       .then(res => res.json())
       .then(json => {
         if(json.hero) {
@@ -130,7 +130,7 @@ export const Homepage = () => {
       const formData = new FormData();
       formData.append('file', file);
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/v1/upload', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -159,7 +159,7 @@ export const Homepage = () => {
       const formData = new FormData();
       formData.append('file', file);
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/v1/upload', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -211,7 +211,7 @@ export const Homepage = () => {
   const handleSaveAll = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/homepage/sync', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/homepage/sync`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)

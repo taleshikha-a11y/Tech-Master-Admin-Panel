@@ -79,11 +79,11 @@ export const UserManagement = () => {
 
     if (editingUser) {
       updateItem('users', editingUser.id, payload);
-      try { fetch(`http://localhost:5000/api/users/${editingUser.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch(err){}
+      try { fetch(`${import.meta.env.VITE_API_URL}/api/users/${editingUser.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch(err){}
     } else {
       payload.id = `usr-${Date.now()}`;
       addItem('users', payload);
-      try { fetch(`http://localhost:5000/api/users/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch(err){}
+      try { fetch(`${import.meta.env.VITE_API_URL}/api/users/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch(err){}
     }
     
     setIsOpen(false);
@@ -92,13 +92,13 @@ export const UserManagement = () => {
   const toggleUserStatus = (user) => {
     const nextStatus = user.status === 'Active' ? 'Suspended' : 'Active';
     updateItem('users', user.id, { status: nextStatus });
-    try { fetch(`http://localhost:5000/api/users/${user.id}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: nextStatus }) }); } catch(err){}
+    try { fetch(`${import.meta.env.VITE_API_URL}/api/users/${user.id}/status`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: nextStatus }) }); } catch(err){}
   };
 
   const confirmDeleteUser = () => {
     if (deleteUserId) {
       deleteItem('users', deleteUserId);
-      try { fetch(`http://localhost:5000/api/users/${deleteUserId}`, { method: 'DELETE' }); } catch(err){}
+      try { fetch(`${import.meta.env.VITE_API_URL}/api/users/${deleteUserId}`, { method: 'DELETE' }); } catch(err){}
       setDeleteUserId(null);
     }
   };

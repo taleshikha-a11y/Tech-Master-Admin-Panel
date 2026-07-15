@@ -80,7 +80,7 @@ export const Contact = () => {
   // --- Handlers ---
   const handleSaveSettings = (section, draft, msg) => {
     updateSection(section, null, draft);
-    try { fetch(`http://localhost:5000/api/contact/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) }); } catch(err){}
+    try { fetch(`${import.meta.env.VITE_API_URL}/api/contact/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) }); } catch(err){}
     showToast(msg);
   };
 
@@ -106,30 +106,30 @@ export const Contact = () => {
       const list = Array.isArray(db.contactFormFields) ? db.contactFormFields : [];
       if (editingField) {
         updateSection('contactFormFields', null, list.map(i => i.id === editingField.id ? { ...fieldForm, id: i.id } : i));
-        try { fetch(`http://localhost:5000/api/contact/${editingField.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fieldForm) }); } catch(err){}
+        try { fetch(`${import.meta.env.VITE_API_URL}/api/contact/${editingField.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fieldForm) }); } catch(err){}
       } else {
         updateSection('contactFormFields', null, [...list, { ...fieldForm, id: `cff-${Date.now()}` }]);
-        try { fetch(`http://localhost:5000/api/contact/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fieldForm) }); } catch(err){}
+        try { fetch(`${import.meta.env.VITE_API_URL}/api/contact/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fieldForm) }); } catch(err){}
       }
       setIsFieldModalOpen(false); showToast('Field Saved');
     } else if (type === 'cat') {
       const list = Array.isArray(db.contactCategoriesSetup) ? db.contactCategoriesSetup : [];
       if (editingCat) {
         updateSection('contactCategoriesSetup', null, list.map(i => i.id === editingCat.id ? { ...catForm, id: i.id } : i));
-        try { fetch(`http://localhost:5000/api/contact/${editingCat.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(catForm) }); } catch(err){}
+        try { fetch(`${import.meta.env.VITE_API_URL}/api/contact/${editingCat.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(catForm) }); } catch(err){}
       } else {
         updateSection('contactCategoriesSetup', null, [...list, { ...catForm, id: `cc-${Date.now()}` }]);
-        try { fetch(`http://localhost:5000/api/contact/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(catForm) }); } catch(err){}
+        try { fetch(`${import.meta.env.VITE_API_URL}/api/contact/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(catForm) }); } catch(err){}
       }
       setIsCatModalOpen(false); showToast('Category Saved');
     } else if (type === 'social') {
       const list = Array.isArray(db.contactSocialLinksSetup) ? db.contactSocialLinksSetup : [];
       if (editingSocial) {
         updateSection('contactSocialLinksSetup', null, list.map(i => i.id === editingSocial.id ? { ...socialForm, id: i.id } : i));
-        try { fetch(`http://localhost:5000/api/contact/${editingSocial.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(socialForm) }); } catch(err){}
+        try { fetch(`${import.meta.env.VITE_API_URL}/api/contact/${editingSocial.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(socialForm) }); } catch(err){}
       } else {
         updateSection('contactSocialLinksSetup', null, [...list, { ...socialForm, id: `csl-${Date.now()}` }]);
-        try { fetch(`http://localhost:5000/api/contact/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(socialForm) }); } catch(err){}
+        try { fetch(`${import.meta.env.VITE_API_URL}/api/contact/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(socialForm) }); } catch(err){}
       }
       setIsSocialModalOpen(false); showToast('Social Link Saved');
     }

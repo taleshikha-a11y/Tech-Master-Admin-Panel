@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { getCareers, createCareer, updateCareer, deleteCareer, getCareerSettings, updateCareerSettings, getResumes, updateResume, deleteResume } from '../../services/careerServices';
+import { getCareers, createCareer, updateCareer, deleteCareer, getCareerSettings, updateCareerSettings, getResumes, updateResume, deleteResume } from '../../Services/careerServices';
 import { useDatabase } from '../../context/DatabaseContext';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';

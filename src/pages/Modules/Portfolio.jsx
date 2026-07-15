@@ -14,7 +14,7 @@ import {
   Monitor, CheckCircle, ArrowUpRight, Hash, ArrowRight, LayoutDashboard, Download, Filter,
   ChevronLeft, ChevronRight, Layers, FileDown, Settings, GripVertical, Settings2, Upload, FileUp
 } from 'lucide-react';
-import { getPortfolios, createPortfolio, updatePortfolio, deletePortfolio, updatePortfolioSettings } from '../../services/portfolioServices';
+import { getPortfolios, createPortfolio, updatePortfolio, deletePortfolio, updatePortfolioSettings } from '../../Services/portfolioServices';
 
 /* =========================================================
    TILT CARD COMPONENT

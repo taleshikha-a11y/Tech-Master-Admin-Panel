@@ -6,7 +6,7 @@ import { Input } from '../../components/ui/Input';
 import { Switch } from '../../components/ui/Switch';
 import { ConfirmDialog, Dialog } from '../../components/ui/Dialog';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as campaignServices from '../../services/campaignServices';
+import * as campaignServices from '../../Services/campaignServices';
 import { 
   Sparkles, Search, Plus, Edit2, Trash2, X, Eye, 
   RefreshCw, Save, Image as ImageIcon, Video, Laptop, Terminal, Layers, ArrowUpRight, Cpu, Calendar, CheckCircle

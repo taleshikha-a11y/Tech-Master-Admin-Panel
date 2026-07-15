@@ -5,7 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { Switch } from '../../components/ui/Switch';
 import { ConfirmDialog } from '../../components/ui/Dialog';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as eventsServices from '../../services/eventsServices';
+import * as eventsServices from '../../Services/eventsServices';
 import { 
   Sparkles, Search, Plus, Edit2, Trash2, X, Eye, 
   RefreshCw, Save, Image as ImageIcon, Video, Laptop, Terminal, Layers, ArrowUpRight, Calendar, Users, MapPin, Monitor, FileText, Download, CheckCircle, Clock, Layout

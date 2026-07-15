@@ -12,7 +12,7 @@ import {
   FileText, CheckCircle, Trash2, Edit2, X, Upload, 
   Settings, Layout, BarChart, Users, Tag, Bold, Italic, Link, Code
 } from 'lucide-react';
-import { getBlogs, createBlog, updateBlog, deleteBlog, getBlogSettings, updateBlogSettings } from '../../services/blogServices';
+import { getBlogs, createBlog, updateBlog, deleteBlog, getBlogSettings, updateBlogSettings } from '../../Services/blogServices';
 
 /* =========================================================
    FILE UPLOAD SIMULATOR (BLOB)
